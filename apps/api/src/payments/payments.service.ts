@@ -9,6 +9,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from "@nestjs/common";
+// (BadRequestException + ConflictException used by delivery confirmation.)
 import { randomUUID } from "node:crypto";
 import type { PaymentGateway, PaymentStatus, PaymentWebhookEvent } from "@scopie/core";
 import { WalletService } from "../wallet/wallet.service";
@@ -80,13 +81,77 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         void this.reconcilePending().catch((err: Error) =>
           this.logger.error(`reconciliation pass failed: ${err.message}`),
         );
+        void this.autoReleaseDelivered().catch((err: Error) =>
+          this.logger.error(`auto-release pass failed: ${err.message}`),
+        );
       }, 60_000);
-      this.logger.log("payment reconciliation loop armed (60s)");
+      this.logger.log("payment reconciliation + auto-release loop armed (60s)");
     }
   }
 
   onModuleDestroy(): void {
     if (this.reconcileTimer) clearInterval(this.reconcileTimer);
+  }
+
+  /**
+   * Buyer confirms delivery → mark delivered AND release escrow in ONE
+   * transaction — a crash between the two must never leave an order
+   * 'delivered' with the seller's money stranded in escrow. Owner-scoped,
+   * and only from the 'shipped' state. Idempotency comes from the
+   * escrow_released flip + the ledger's (ref_type, ref_id) uniqueness.
+   */
+  async confirmDelivery(orderId: string, buyerId: string): Promise<{ released: boolean }> {
+    const pool = this.db.get();
+    if (!pool) throw new BadRequestException("delivery confirmation requires a database");
+    const client = await pool.connect();
+    try {
+      await client.query("begin");
+      const res = await client.query(
+        `update orders_ref set fulfillment_status='delivered', delivered_at=now(), updated_at=now()
+         where id=$1 and buyer_id=$2 and payment_status='paid' and fulfillment_status='shipped'
+         returning id`,
+        [orderId, buyerId],
+      );
+      if (res.rowCount === 0) {
+        await client.query("rollback");
+        throw new ConflictException("order can't be confirmed in its current state");
+      }
+      await this.releaseEscrowLegs(client, orderId);
+      await client.query("commit");
+      return { released: true };
+    } catch (err) {
+      await client.query("rollback").catch(() => undefined);
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Two recovery duties, run from the 60s loop:
+   *  1. Auto-release escrow for orders shipped past the 7-day dispute window
+   *     and never confirmed — a silent buyer must not strand seller money.
+   *  2. Rescue any 'delivered' order whose escrow never released (e.g. a
+   *     historical partial failure) — releaseEscrow is idempotent, so
+   *     re-driving these is always safe.
+   */
+  async autoReleaseDelivered(): Promise<void> {
+    const pool = this.db.get();
+    if (!pool) return;
+    await pool.query(
+      `update orders_ref set fulfillment_status='delivered', delivered_at=now(), updated_at=now()
+       where payment_status='paid' and fulfillment_status='shipped' and escrow_released=false
+         and shipped_at < now() - interval '7 days'`,
+    );
+    const pending = await pool.query(
+      `select id from orders_ref
+       where payment_status='paid' and fulfillment_status='delivered' and escrow_released=false limit 50`,
+    );
+    for (const row of pending.rows) {
+      await this.releaseEscrow(row.id as string).catch((err: Error) =>
+        this.logger.error(`auto-release failed for ${row.id}: ${err.message}`),
+      );
+    }
   }
 
   /** Drive open orders to a terminal state — webhooks are success-only. */
@@ -121,12 +186,26 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
   async createCheckout(req: CheckoutRequest): Promise<{ paymentUrl: string }> {
     const product = await this.products.getById(req.productId);
     if (!product) throw new NotFoundException("product not found");
+    // Self-dealing (buy your own product to cycle money / farm ranking
+    // signals) is blocked outright.
+    if (product.sellerId === req.buyer.id) {
+      throw new ConflictException("you can't buy your own product");
+    }
     const amountSen = product.priceSen * req.quantity;
     const buyerId = req.buyer.id;
 
     const pool = this.db.get();
+    const gatewayConfigured = (this.gateway as { configured?: boolean }).configured === true;
     const isDbOrder =
       Boolean(pool) && !req.buyer.isGuest && UUID_RE.test(buyerId) && UUID_RE.test(product.sellerId);
+    // REAL money must never land in the volatile in-memory store: with a
+    // configured gateway + DB + real buyer, a product whose seller isn't a
+    // persistable profile uuid (Medusa metadata gaps, demo items) is refused
+    // — otherwise the payment would succeed while escrow release and
+    // restart-safety are impossible.
+    if (!isDbOrder && gatewayConfigured && pool && !req.buyer.isGuest) {
+      throw new ConflictException("this product isn't available for purchase right now");
+    }
     if (isDbOrder && pool) {
       // Belt-and-braces: the Supabase signup trigger normally creates the
       // profile; this covers dev Postgres and pre-trigger users (FK target).
@@ -142,11 +221,21 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
           [req.orderId, buyerId, product.sellerId, product.id, req.quantity, amountSen],
         );
         if (res.rowCount === 0) {
-          const existing = await pool.query(`select amount_sen, payment_status from orders_ref where id=$1`, [
-            req.orderId,
-          ]);
+          const existing = await pool.query(
+            `select amount_sen, payment_status, buyer_id, product_id from orders_ref where id=$1`,
+            [req.orderId],
+          );
           const row = existing.rows[0];
-          if (!row || Number(row.amount_sen) !== amountSen || row.payment_status !== "pending") {
+          // Idempotent re-call must match the ORIGINAL order in full — a
+          // reused orderId from a different buyer/product is rejected, never
+          // silently rebound to the first buyer's order.
+          if (
+            !row ||
+            Number(row.amount_sen) !== amountSen ||
+            row.payment_status !== "pending" ||
+            row.buyer_id !== buyerId ||
+            (row.product_id != null && row.product_id !== product.id)
+          ) {
             throw new ConflictException("order already exists with different terms");
           }
         }
@@ -304,42 +393,50 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Called on delivery confirmation (or auto-release timer). Conditional
-   * state transition + DB-derived amount: double calls release nothing twice.
-   * NOTE: no caller is wired yet — the delivery-confirmation flow lands with
-   * the commerce backend; until then settlement is a manual ops action.
+   * Escrow release: escrow → seller (net of the SELLER'S commission rate,
+   * sellers.commission_bps, fallback 800) + platform fee. Called by buyer
+   * delivery confirmation and the auto-release/rescue cron; idempotent via
+   * the conditional escrow_released flip + ledger (ref_type, ref_id)
+   * uniqueness, so double calls release nothing twice.
    */
+  private async releaseEscrowLegs(client: import("pg").PoolClient, orderId: string): Promise<boolean> {
+    const res = await client.query(
+      `update orders_ref set escrow_released=true, updated_at=now()
+       where id=$1 and payment_status='paid' and escrow_released=false
+       returning amount_sen, seller_id`,
+      [orderId],
+    );
+    const row = res.rows[0];
+    if (!row) {
+      this.logger.warn(`releaseEscrow(${orderId}): not paid or already released — no-op`);
+      return false;
+    }
+    const amountSen = Number(row.amount_sen);
+    // Per-seller commission — the schema's commission_bps is the authority.
+    const rateRes = await client.query(`select commission_bps from sellers where id=$1`, [row.seller_id]);
+    const bps = rateRes.rows[0]?.commission_bps != null ? Number(rateRes.rows[0].commission_bps) : COMMISSION_BPS;
+    const fee = Math.floor((amountSen * bps) / 10_000);
+    await this.wallet.post(
+      randomUUID(),
+      "order_release",
+      orderId,
+      [
+        { accountId: `escrow:${orderId}`, amount: -amountSen, currency: "MYR" },
+        { accountId: `seller:${row.seller_id}`, amount: amountSen - fee, currency: "MYR" },
+        { accountId: "platform:fees", amount: fee, currency: "MYR" },
+      ],
+      client,
+    );
+    return true;
+  }
+
   async releaseEscrow(orderId: string): Promise<void> {
     const pool = this.db.get();
     if (!pool) throw new Error("escrow release requires a database");
     const client = await pool.connect();
     try {
       await client.query("begin");
-      const res = await client.query(
-        `update orders_ref set escrow_released=true, updated_at=now()
-         where id=$1 and payment_status='paid' and escrow_released=false
-         returning amount_sen, seller_id`,
-        [orderId],
-      );
-      const row = res.rows[0];
-      if (!row) {
-        await client.query("rollback");
-        this.logger.warn(`releaseEscrow(${orderId}): not paid or already released — no-op`);
-        return;
-      }
-      const amountSen = Number(row.amount_sen);
-      const fee = Math.floor((amountSen * COMMISSION_BPS) / 10_000);
-      await this.wallet.post(
-        randomUUID(),
-        "order_release",
-        orderId,
-        [
-          { accountId: `escrow:${orderId}`, amount: -amountSen, currency: "MYR" },
-          { accountId: `seller:${row.seller_id}`, amount: amountSen - fee, currency: "MYR" },
-          { accountId: "platform:fees", amount: fee, currency: "MYR" },
-        ],
-        client,
-      );
+      await this.releaseEscrowLegs(client, orderId);
       await client.query("commit");
     } catch (err) {
       await client.query("rollback").catch(() => undefined);

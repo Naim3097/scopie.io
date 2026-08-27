@@ -280,6 +280,29 @@ button { font: inherit; cursor: pointer; }
 }
 .auth-input:focus-visible { outline: 2px solid var(--accent); }
 
+/* ── seller centre ── */
+.sell-hero { text-align: center; padding: 20px 0 22px; }
+.sec-label {
+  font-family: "Spline Sans Mono", ui-monospace, monospace;
+  font-size: 11px; letter-spacing: 0.14em; color: var(--accent);
+  text-transform: uppercase; margin-bottom: 2px;
+}
+.tabs { display: flex; gap: 6px; margin: 20px 0 4px; border-bottom: 1px solid var(--line); }
+.tab {
+  border: none; background: none; padding: 10px 4px; margin-right: 12px;
+  font-size: 14.5px; font-weight: 600; color: var(--muted);
+  border-bottom: 2px solid transparent;
+}
+.tab-active { color: var(--accent); border-bottom-color: var(--accent); }
+.add-product { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.seller-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px 14px;
+}
+.seller-row .grow { flex: 1; min-width: 0; }
+.seller-row b { font-size: 14.5px; }
+
 .section-note {
   background: var(--surface-2); border-radius: 12px; padding: 10px 14px;
   color: var(--muted); font-size: 12.5px; margin-top: 18px;

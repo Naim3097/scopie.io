@@ -13,7 +13,7 @@ reasoning behind every choice.
 apps/
   web/          Next.js PWA (scopie.io) — feed, discover, live, shop, profile
   api/          NestJS core API — feed, events, live tokens, payments, wallet, agents
-  worker/       BullMQ workers — counters, payment reconciliation
+  worker/       BullMQ workers — counters (payment reconciliation lives in the API)
   live-agent/   Python LiveKit Agents worker — the AI live-host brain
   commerce/     Medusa v2 + Mercur bootstrap (marketplace system of record)
 packages/
@@ -40,10 +40,10 @@ create `apps/web/.env.local` containing **only the `NEXT_PUBLIC_*` lines**
 | Sign-in (email OTP; phone/WhatsApp next) | `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (web) and `SUPABASE_JWT_SECRET` (API); apply `0003_supabase_auth.sql` on the Supabase project. Without them the app runs in guest mode. |
 | Events persistence + ledger tables | `DATABASE_URL` (then apply `packages/db/migrations/`). Order/escrow flow additionally needs real UUID identities (auth phase) — demo identities stay in the in-memory demo store. |
 | Event pipeline + counters | `REDIS_URL` + `pnpm dev:worker` |
-| Product search | `MEILI_HOST` (docker compose provides one) |
+| Product search | `MEILI_HOST` (docker compose provides one) — catalog writes auto-index |
+| Multi-vendor catalog | `MEDUSA_URL` reads from Medusa's store API; unset, the catalog is Postgres `catalog_products` (DB mode) or the demo array. Seller Centre (`/sell`) writes to Postgres/demo — the Mercur vendor write path is pending. |
 | Live viewer tokens (API only) | `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` — the web player integration is pending; the room page still plays the demo stream |
 | Payments (sandbox) | `LEANX_*` credentials + `API_PUBLIC_URL` (server-side only — see below) |
-| Marketplace backend | planned — `MEDUSA_URL` is reserved and not read by any code yet (bootstrap per `apps/commerce/README.md`) |
 
 Local infra: `docker compose -f docker-compose.dev.yml up -d` (Postgres,
 Redis, Meilisearch).

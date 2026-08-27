@@ -20,10 +20,12 @@ to real (the value is baked in at build time).
      from the root `packageManager` field and installs the whole workspace;
      the root `postinstall` builds `@scopie/core` before `next build`).
 3. Environment variables: **none needed** for the demo deployment.
-   Later, when the API is hosted: add `NEXT_PUBLIC_API_URL=https://api.scopie.io`
-   **and trigger a Redeploy** — `NEXT_PUBLIC_*` values are baked into the
-   client bundle at build time, not read at runtime; without a fresh build
-   the site stays in demo mode and nothing appears to change.
+   - **Sign-in** (deployable ahead of the API): add
+     `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+   - **Real backend**: add `NEXT_PUBLIC_API_URL=https://api.scopie.io`.
+   - All `NEXT_PUBLIC_*` values are **baked in at build time — trigger a
+     Redeploy after setting them**; without a fresh build the site stays in
+     demo/guest mode and nothing appears to change.
 4. Deploy. You get `scopie-io-<hash>.vercel.app` — verify `/feed` plays.
 
 ## 2 · Point scopie.io from Hostinger

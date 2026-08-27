@@ -19,6 +19,11 @@ import { LeanXGateway } from "./payments/payment-gateway.leanx";
 import { WalletController } from "./wallet/wallet.controller";
 import { WalletService } from "./wallet/wallet.service";
 import { AgentsController } from "./agents/agents.controller";
+import { CommerceService } from "./commerce/commerce.service";
+import { MeiliService } from "./commerce/meili.service";
+import { SellerController } from "./seller/seller.controller";
+import { SellerService } from "./seller/seller.service";
+import { OrdersController } from "./orders/orders.controller";
 
 @Module({
   imports: [
@@ -34,6 +39,8 @@ import { AgentsController } from "./agents/agents.controller";
     PaymentsController,
     WalletController,
     AgentsController,
+    SellerController,
+    OrdersController,
   ],
   providers: [
     Db,
@@ -42,7 +49,10 @@ import { AgentsController } from "./agents/agents.controller";
     ProfilesService,
     FeedService,
     EventsService,
+    CommerceService,
+    MeiliService,
     ProductsService,
+    SellerService,
     LiveService,
     PaymentsService,
     WalletService,

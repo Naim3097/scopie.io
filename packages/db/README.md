@@ -8,7 +8,13 @@ and plain Postgres (local dev via `docker-compose.dev.yml`).
 ```bash
 psql postgres://scopie:scopie@localhost:5432/scopie -f migrations/0001_init.sql
 psql postgres://scopie:scopie@localhost:5432/scopie -f migrations/0002_wallet.sql
+psql postgres://scopie:scopie@localhost:5432/scopie -f migrations/0004_marketplace.sql
 ```
+
+Skip `0003_supabase_auth.sql` locally — it is **Supabase-only** (references
+the auth schema; `ProfilesService.ensure()` covers dev provisioning). `0004`
+runs everywhere: its RLS/grant section self-guards and no-ops on plain
+Postgres.
 
 ## Apply to Supabase
 

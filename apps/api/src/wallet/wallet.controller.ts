@@ -10,8 +10,8 @@ export class WalletController {
   /**
    * Own balances only — identity comes from the token, so there is nothing
    * to enumerate. Earned SCOP credits only: no stored RM value at MVP by
-   * design (BNM e-money policy). Sellers see their payable balance in the
-   * Seller Centre via a separate route later.
+   * design (BNM e-money policy). Sellers read their payable balance via
+   * GET /v1/seller/balance.
    */
   @Get("me")
   @UseGuards(AuthGuard)

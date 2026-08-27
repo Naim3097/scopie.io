@@ -14,9 +14,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * Scopie worker process. MVP jobs:
  *  1. engagement-events: maintain denormalized video_stats counters
  *     (clients never write counters; only this worker does).
- *  2. payment reconciliation cron: the gateway's webhooks fire on success
- *     only, so every open order must be polled to a terminal state.
- *  3. (next) moderation scans, notification fan-out, payout batches.
+ *  2. (next) moderation scans, notification fan-out, payout batches.
+ * Payment reconciliation + escrow auto-release run in the API process
+ * (PaymentsService, 60s loop) where the gateway adapter lives.
  *
  * Phase 2: multi-step AI/video pipelines move to Temporal; single-step jobs
  * stay here on BullMQ.

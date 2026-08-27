@@ -95,8 +95,12 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      <Link href="/sell" className="btn btn-primary" style={{ marginTop: 16, width: "auto" }}>
+        🛒 Seller Centre
+      </Link>
+
       {!isDemoIdentity && (
-        <button className="btn btn-ghost" style={{ marginTop: 16 }} onClick={() => void session.signOut()}>
+        <button className="btn btn-ghost" style={{ marginTop: 12, marginLeft: 10 }} onClick={() => void session.signOut()}>
           Sign out
         </button>
       )}

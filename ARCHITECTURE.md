@@ -36,6 +36,39 @@ Full research behind these choices: see the published stack report
               └──────────────────┘
 ```
 
+## Identity (Phase 1 — delivered)
+
+- **Web**: Supabase Auth, email OTP today (phone/WhatsApp drops into the same
+  two-step flow). `SessionProvider` + `useSession()`; sign-in gates buying
+  and selling when auth is configured.
+- **API**: verifies Supabase access tokens **locally** (HS256 with
+  `SUPABASE_JWT_SECRET` — no network call per request). `AuthGuard` derives
+  ALL identity from the token; no user-scoped route reads identity from a
+  body or query. Demo mode admits namespaced `guest:<id>` identities from the
+  `x-scopie-guest` header (header-less callers get an ephemeral id — no
+  shared scope).
+- **Fail-closed**: a production API without the JWT secret refuses to boot
+  unless `SCOPIE_DEMO_MODE=1` is set explicitly — a cleared env var must
+  never silently become an auth bypass. (So "demo with zero env vars" is a
+  DEV property; production demands the secret or the explicit opt-in.)
+- **Profiles**: auto-provisioned by the `0003` signup trigger on Supabase,
+  with `ProfilesService.ensure()` as the dev-Postgres fallback; RLS restricts
+  authed clients to presentational columns (trust/role columns are
+  service-role-only).
+
+## Commerce (Phase 2 — delivered, Medusa pending)
+
+The catalog reads through **CommerceService** in priority order:
+**Medusa (when `MEDUSA_URL` set) → Postgres `catalog_products` → demo array**
+— with the rule that demo items never leak into a configured store. Until a
+Medusa+Mercur instance exists, `catalog_products` is the authoritative
+catalog and the Seller Centre (`/sell`) writes to it (the Mercur vendor
+write path is a marked TODO); every write indexes Meilisearch, the search
+source of record. Sellers live in the `sellers` table (per-seller
+`commission_bps` — read by escrow release), and fulfillment is:
+paid → seller ships → buyer confirms (or 7-day auto-confirm) → escrow
+releases to the seller net of commission, atomically with the status flip.
+
 ## Why web-first works for this product
 
 - **Video feed**: iOS Safari plays HLS natively; everywhere else `hls.js`.
@@ -157,8 +190,9 @@ path to bounded autonomous spending.)
 
 | | Now (MVP) | Next | Later |
 |---|---|---|---|
+| Identity | Supabase email OTP + token-verified API (✅ delivered) | WhatsApp OTP primary, MyKad eKYC | Avatar ID minting |
 | Feed | heuristic + events table | Gorse/Recombee | learned re-ranker |
 | Live | seller WebRTC + demo AI room | AI host GA (LiveKit Agents + avatar) | self-hosted MuseTalk rendering |
-| Commerce | Medusa+Mercur, pass-through payments | automated payouts, seller KYB | EMI partner, stored value |
+| Commerce | catalog_products + ledger escrow + Seller Centre (✅); Medusa read path ready, writes stubbed | Medusa+Mercur live, automated payouts, seller KYB | EMI partner, stored value |
 | Agents | shopper stub + MCP server | real agent loop, voice (BM/EN) | mandated autonomous buys |
 | App | PWA | creator tools, editor SDK | React Native app |
