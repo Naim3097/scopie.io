@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+.next/
+dist/
+out/
+*.tsbuildinfo
+
+# env & secrets — never commit
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+.venv/
+*.egg-info/
+
+# misc
+.DS_Store
+Thumbs.db
+*.log
+coverage/
+
+# local machine config (contains absolute local paths)
+.claude/
+.vercel/

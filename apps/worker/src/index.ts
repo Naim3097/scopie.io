@@ -1,0 +1,95 @@
+import { config as loadEnv } from "dotenv";
+import { resolve } from "node:path";
+loadEnv({ path: resolve(__dirname, "../../../.env") });
+loadEnv();
+
+import { Worker } from "bullmq";
+import { Pool } from "pg";
+import { EngagementEvent } from "@scopie/core";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Scopie worker process. MVP jobs:
+ *  1. engagement-events: maintain denormalized video_stats counters
+ *     (clients never write counters; only this worker does).
+ *  2. payment reconciliation cron: the gateway's webhooks fire on success
+ *     only, so every open order must be polled to a terminal state.
+ *  3. (next) moderation scans, notification fan-out, payout batches.
+ *
+ * Phase 2: multi-step AI/video pipelines move to Temporal; single-step jobs
+ * stay here on BullMQ.
+ */
+
+const redisUrl = process.env.REDIS_URL;
+const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL, max: 5 }) : null;
+
+if (!redisUrl) {
+  console.log("worker: REDIS_URL not set — nothing to do (demo mode). Exiting.");
+  process.exit(0);
+}
+
+const eventsWorker = new Worker(
+  "engagement-events",
+  async (job) => {
+    const parsed = EngagementEvent.safeParse(job.data);
+    if (!parsed.success) return; // never crash the queue on a bad payload
+    const e = parsed.data;
+    if (!pool) return;
+    // Demo-mode subjects ("v1", "p_luxe_bag") are not uuids — skip counter
+    // writes rather than failing every job against uuid-typed columns.
+    if (!UUID_RE.test(e.subjectId)) return;
+
+    switch (e.type) {
+      case "video.view":
+        await pool.query(
+          `insert into video_stats (video_id, views) values ($1, 1)
+           on conflict (video_id) do update set views = video_stats.views + 1`,
+          [e.subjectId],
+        );
+        break;
+      case "video.watch":
+      case "video.complete":
+        if (e.watchMs) {
+          await pool.query(
+            `insert into video_stats (video_id, watch_ms_total) values ($1, $2)
+             on conflict (video_id) do update set watch_ms_total = video_stats.watch_ms_total + $2`,
+            [e.subjectId, e.watchMs],
+          );
+        }
+        break;
+      case "video.like":
+        await pool.query(
+          `insert into video_stats (video_id, likes) values ($1, 1)
+           on conflict (video_id) do update set likes = video_stats.likes + 1`,
+          [e.subjectId],
+        );
+        break;
+      case "video.unlike":
+        await pool.query(`update video_stats set likes = greatest(likes - 1, 0) where video_id = $1`, [e.subjectId]);
+        break;
+      case "video.share":
+        await pool.query(
+          `insert into video_stats (video_id, shares) values ($1, 1)
+           on conflict (video_id) do update set shares = video_stats.shares + 1`,
+          [e.subjectId],
+        );
+        break;
+      default:
+        break; // other event types feed the recommender, not counters
+    }
+  },
+  { connection: { url: redisUrl }, concurrency: 8 },
+);
+
+eventsWorker.on("failed", (job, err) => {
+  console.error(`event job ${job?.id} failed: ${err.message}`);
+});
+
+// ── payment reconciliation ─────────────────────────────────────────
+// TODO: every 60s, select orders_ref where payment_status='pending' and
+// created_at > now()-'24h', call the API's internal reconcile endpoint (which
+// asks the gateway for authoritative status), and expire stale orders.
+// Mandatory because gateway callbacks are success-only.
+
+console.log("Scopie worker running: engagement-events");

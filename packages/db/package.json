@@ -1,0 +1,6 @@
+{
+  "name": "@scopie/db",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SQL migrations for the Scopie Postgres schema (Supabase-compatible)."
+}

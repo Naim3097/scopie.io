@@ -1,0 +1,25 @@
+{
+  "name": "@scopie/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scopie Commerce MCP server — the single audited tool layer every agent (shopper, live host, seller assistant) consumes.",
+  "type": "module",
+  "main": "dist/server.js",
+  "bin": {
+    "scopie-mcp": "dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

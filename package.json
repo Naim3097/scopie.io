@@ -1,0 +1,20 @@
+{
+  "name": "scopie",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Scopie — AI-avatar social commerce for Malaysia. Web-first MVP monorepo.",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "postinstall": "pnpm --filter @scopie/core build || echo skipped-core-build",
+    "dev": "pnpm --parallel --filter @scopie/web --filter @scopie/api dev",
+    "dev:web": "pnpm --filter @scopie/web dev",
+    "dev:api": "pnpm --filter @scopie/api dev",
+    "dev:worker": "pnpm --filter @scopie/worker dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r exec rimraf dist .next"
+  }
+}

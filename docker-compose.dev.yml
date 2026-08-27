@@ -1,0 +1,37 @@
+# Local dev dependencies. `docker compose -f docker-compose.dev.yml up -d`
+# Production uses Supabase (Postgres), managed Redis, and Meilisearch Cloud or a SG VM.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: scopie
+      POSTGRES_PASSWORD: scopie
+      POSTGRES_DB: scopie
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    environment:
+      MEILI_NO_ANALYTICS: "true"
+    ports:
+      - "7700:7700"
+    volumes:
+      - meili_data:/meili_data
+
+  # Optional: Blnk double-entry ledger (phase 2 — MVP records the ledger in Postgres).
+  # blnk:
+  #   image: blnkfinance/blnk:latest
+  #   ports:
+  #     - "5001:5001"
+
+volumes:
+  pg_data:
+  meili_data:
