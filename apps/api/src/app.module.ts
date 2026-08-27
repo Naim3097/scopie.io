@@ -21,6 +21,10 @@ import { WalletService } from "./wallet/wallet.service";
 import { AgentsController } from "./agents/agents.controller";
 import { CommerceService } from "./commerce/commerce.service";
 import { MeiliService } from "./commerce/meili.service";
+import { VideosController } from "./videos/videos.controller";
+import { VideosService } from "./videos/videos.service";
+import { StreamService } from "./videos/stream.service";
+import { ModerationService } from "./videos/moderation.service";
 import { SellerController } from "./seller/seller.controller";
 import { SellerService } from "./seller/seller.service";
 import { OrdersController } from "./orders/orders.controller";
@@ -41,6 +45,7 @@ import { OrdersController } from "./orders/orders.controller";
     AgentsController,
     SellerController,
     OrdersController,
+    VideosController,
   ],
   providers: [
     Db,
@@ -51,6 +56,9 @@ import { OrdersController } from "./orders/orders.controller";
     EventsService,
     CommerceService,
     MeiliService,
+    VideosService,
+    StreamService,
+    ModerationService,
     ProductsService,
     SellerService,
     LiveService,

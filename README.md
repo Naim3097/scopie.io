@@ -44,6 +44,7 @@ create `apps/web/.env.local` containing **only the `NEXT_PUBLIC_*` lines**
 | Multi-vendor catalog | `MEDUSA_URL` reads from Medusa's store API; unset, the catalog is Postgres `catalog_products` (DB mode) or the demo array. Seller Centre (`/sell`) writes to Postgres/demo — the Mercur vendor write path is pending. |
 | Live viewer tokens (API only) | `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` — the web player integration is pending; the room page still plays the demo stream |
 | Payments (sandbox) | `LEANX_*` credentials + `API_PUBLIC_URL` (server-side only — see below) |
+| Creator uploads | `CF_ACCOUNT_ID` + `CF_STREAM_TOKEN` + `CF_WEBHOOK_SECRET` (+ DB + auth) — direct-to-Cloudflare uploads, ready-webhook, caption moderation, feed. Without them, `/create` demo-publishes a sample clip. |
 
 Local infra: `docker compose -f docker-compose.dev.yml up -d` (Postgres,
 Redis, Meilisearch).

@@ -77,6 +77,23 @@ button { font: inherit; cursor: pointer; }
   max-width: 480px; margin: 0 auto; height: var(--nav-h);
   display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
 }
+.bottomnav-6 { grid-template-columns: repeat(6, 1fr); }
+.nav-create-btn {
+  display: grid; place-items: center;
+  width: 44px; height: 34px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), #7a5bd6);
+  color: #fff; font-size: 22px; font-weight: 600; line-height: 1;
+  box-shadow: 0 2px 8px rgba(85, 86, 214, 0.35);
+}
+.upload-bar {
+  height: 8px; border-radius: 999px; background: var(--surface-2);
+  overflow: hidden;
+}
+.upload-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--cyan));
+  transition: width 0.2s ease;
+}
 .navitem {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
   font-size: 10.5px; color: var(--faint); border: none; background: none; padding: 6px 0;
