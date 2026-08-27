@@ -144,7 +144,10 @@ export default function SellPage() {
         </div>
       )}
 
-      <div style={{ marginTop: 20 }}>
+      <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
+        <Link href="/studio" className="btn btn-primary" style={{ width: "auto" }}>
+          🎥 Go Live
+        </Link>
         <Link href="/profile" className="btn btn-ghost">
           Back to profile
         </Link>

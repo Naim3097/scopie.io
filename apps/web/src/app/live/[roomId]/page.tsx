@@ -4,9 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { LiveRoom, Product } from "@scopie/core";
-import { apiGet, apiPost } from "@/lib/api";
+import { API_BASE, DEMO_MODE, apiGet, apiPost } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/supabase";
 import { DEMO_LIVE_HLS, demoProducts, demoRooms, formatRM } from "@/lib/demo";
 import { MOBILE_HLS_CONFIG, applyLevelCap } from "@/lib/hls-config";
+import { connectViewer, type ViewerConnection } from "@/lib/live";
 import { track } from "@/lib/events";
 
 interface ChatMsg {
@@ -15,37 +17,66 @@ interface ChatMsg {
   isHost?: boolean;
 }
 
+type RoomView = LiveRoom & { pinnedProduct?: Product | null };
+type PlaybackMode = "pending" | "hls" | "livekit";
+
+/** How long a connected LiveKit room may stay video-less before we fall back to the sample loop. */
+const NO_VIDEO_FALLBACK_MS = 12_000;
+/** While a live room plays the fallback, retry the real connection this often (via the 10 s poll). */
+const LIVEKIT_RETRY_MS = 30_000;
+
+// Scripted chat is demo-theater — a real room must start with a real (empty) log.
+const DEMO_CHAT: ChatMsg[] = [
+  { from: "Nurul", text: "Love this bag! 😍" },
+  { from: "Aiman", text: "How much is the bag?" },
+  { from: "Scopie", text: "It's RM 189.00 — and there's 10% off today only ✨", isHost: true },
+];
+
 /**
- * Live room viewer — currently plays the demo HLS loop. The LiveKit web
- * player (POST /v1/live/token → join room, pins via data messages) is NOT
- * wired yet; when it lands, the demo path below becomes its fallback.
- * Production sync rule stands: pins/deals ride stream position, never wall
- * clock (HLS viewers lag 3–6 s).
+ * Live room viewer. Real mode: viewer token → LiveKit room (subscribe-only),
+ * with room state (pin/deal/status) polled every 10 s. Demo mode (or any
+ * connect failure): the HLS demo loop — clearly labeled as a sample when the
+ * room itself is real, and retried while the room stays live.
  */
 export default function LiveRoomPage() {
   const params = useParams<{ roomId: string }>();
   const roomId = params.roomId;
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [room, setRoom] = useState<LiveRoom | null | "not_found">(null);
-  const [messages, setMessages] = useState<ChatMsg[]>([
-    { from: "Nurul", text: "Love this bag! 😍" },
-    { from: "Aiman", text: "How much is the bag?" },
-    { from: "Scopie", text: "It's RM 189.00 — and there's 10% off today only ✨", isHost: true },
-  ]);
+  const lkRef = useRef<ViewerConnection | null>(null);
+  const mutedRef = useRef(true);
+  const modeRef = useRef<PlaybackMode>("pending");
+  const lastAttemptRef = useRef(0);
+  // The active connect run's cancellation token — the ended-room teardown
+  // must be able to cancel an in-flight connect, not just unmount cleanup.
+  const cancelTokenRef = useRef<{ cancelled: boolean } | null>(null);
+  const [room, setRoom] = useState<RoomView | null | "not_found">(null);
+  const [mode, setMode] = useState<PlaybackMode>("pending");
+  const [connectAttempt, setConnectAttempt] = useState(0);
+  const [messages, setMessages] = useState<ChatMsg[]>(DEMO_MODE ? DEMO_CHAT : []);
   const [draft, setDraft] = useState("");
   const [dealLeft, setDealLeft] = useState<number | null>(null);
   const [muted, setMuted] = useState(true);
   const [needsTap, setNeedsTap] = useState(false);
   const chatlogRef = useRef<HTMLDivElement>(null);
 
+  const roomGone = room === "not_found" || (room !== null && room.status === "ended");
+  const polling = !DEMO_MODE && room !== null && room !== "not_found" && room.status !== "ended";
+
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
+
   /** In-gesture unmute — mobile browsers only honor audio started from a tap. */
   const toggleMute = () => {
     const el = videoRef.current;
     const next = !muted;
+    mutedRef.current = next;
     if (el) {
       el.muted = next;
       if (!next && el.paused) void el.play().catch(() => undefined);
     }
+    // LiveKit audio rides in hidden elements — the mute button must drive them too.
+    lkRef.current?.setMuted(next);
     setMuted(next);
   };
 
@@ -53,48 +84,164 @@ export default function LiveRoomPage() {
     setNeedsTap(false);
     const el = videoRef.current;
     if (el) void el.play().catch(() => setNeedsTap(true));
+    lkRef.current?.setMuted(mutedRef.current);
   };
 
-  // New messages must be visible — a 200px scroller with appends below the
-  // fold reads as a dead chat on a phone.
   useEffect(() => {
     const log = chatlogRef.current;
     if (log) log.scrollTop = log.scrollHeight;
   }, [messages.length]);
 
-  const pinned: Product | undefined = useMemo(
-    () =>
-      room && room !== "not_found" ? demoProducts.find((p) => p.id === room.pinnedProductId) : undefined,
-    [room],
-  );
-
+  // Join/leave analytics once per room visit — connect retries must not re-fire them.
   useEffect(() => {
-    void apiGet<LiveRoom | null>(
-      `/v1/live/rooms/${roomId}`,
-      demoRooms.find((r) => r.id === roomId) ?? null,
-    ).then((r) => {
-      setRoom(r ?? "not_found");
-      // Deal countdown seeds from the room's own deal window, not a constant.
-      if (r?.flashDeal) setDealLeft(Math.max(0, Math.floor(r.flashDeal.endsAtStreamMs / 1000)));
-    });
     track({ type: "live.join", subjectId: roomId, surface: "live" });
     return () => track({ type: "live.leave", subjectId: roomId, surface: "live" });
   }, [roomId]);
 
-  // Demo playback. play() only after a source is attached; autoplay denial
-  // surfaces a tap-to-play overlay instead of a silent black stage.
+  // In real mode the server resolves the pinned product; the local demo
+  // catalog is only consulted on the pure-demo site.
+  const pinned: Product | null | undefined = useMemo(() => {
+    if (!room || room === "not_found") return undefined;
+    if (room.pinnedProduct !== undefined) return room.pinnedProduct;
+    if (DEMO_MODE) return demoProducts.find((p) => p.id === room.pinnedProductId) ?? null;
+    return null;
+  }, [room]);
+
+  // Load room + decide playback mode. Re-runs when the poll requests a
+  // LiveKit retry (connectAttempt) — e.g. the seller's video arrived late.
+  useEffect(() => {
+    const token = { cancelled: false };
+    cancelTokenRef.current = token;
+    let gotVideo = false;
+    let watchdog: ReturnType<typeof setTimeout> | null = null;
+    void (async () => {
+      const view = await apiGet<RoomView | null>(
+        `/v1/live/rooms/${roomId}`,
+        (demoRooms.find((r) => r.id === roomId) as RoomView | undefined) ?? null,
+      );
+      if (token.cancelled) return;
+      setRoom(view ?? "not_found");
+      if (!view) return;
+      if (view.flashDeal) setDealLeft(Math.max(0, Math.floor(view.flashDeal.endsAtStreamMs / 1000)));
+      if (view.status !== "live") return;
+
+      if (DEMO_MODE) {
+        setMode("hls");
+        return;
+      }
+      lastAttemptRef.current = Date.now();
+      const tok = await apiPost<{ demo: boolean; token: string | null; url: string | null }>(
+        "/v1/live/token",
+        { roomId },
+        { demo: true, token: null, url: null },
+      );
+      if (token.cancelled) return;
+      if (tok.demo || !tok.token || !tok.url) {
+        setMode("hls");
+        return;
+      }
+      const el = videoRef.current;
+      if (!el) return;
+      try {
+        // Local first, THEN the cancelled check, THEN the shared ref — a
+        // stale run resolving late must never clobber the active connection.
+        const conn = await connectViewer(tok.url, tok.token, el, {
+          muted: mutedRef.current,
+          onVideoTrack: () => {
+            gotVideo = true;
+            if (watchdog) clearTimeout(watchdog);
+          },
+        });
+        if (token.cancelled) {
+          conn.disconnect();
+          return;
+        }
+        lkRef.current = conn;
+        // Re-sync a mute toggle made while the connection was pending.
+        conn.setMuted(mutedRef.current);
+        setMode("livekit");
+        void el.play().catch((err: DOMException) => {
+          if (err?.name === "NotAllowedError") setNeedsTap(true);
+        });
+        // A connected room with no publisher video (orphaned/idle room) must
+        // not freeze the viewer on a poster — fall back to the labeled sample.
+        watchdog = setTimeout(() => {
+          if (!gotVideo && !token.cancelled) {
+            conn.disconnect();
+            if (lkRef.current === conn) lkRef.current = null;
+            setMode("hls");
+          }
+        }, NO_VIDEO_FALLBACK_MS);
+      } catch {
+        // A failed WebRTC connect must never leave a black stage.
+        if (!token.cancelled) setMode("hls");
+      }
+    })();
+    return () => {
+      token.cancelled = true;
+      if (watchdog) clearTimeout(watchdog);
+      lkRef.current?.disconnect();
+      lkRef.current = null;
+    };
+  }, [roomId, connectAttempt]);
+
+  // Real mode: poll room state (pins, deals, status) every 10 s until the
+  // room is gone. While a live room sits on the fallback, request a LiveKit
+  // retry — early viewers must not be stuck on the sample after video arrives.
+  useEffect(() => {
+    if (!polling) return;
+    const t = setInterval(() => {
+      void (async () => {
+        try {
+          const res = await fetch(`${API_BASE}/v1/live/rooms/${roomId}`, {
+            headers: await getAuthHeaders(),
+            signal: AbortSignal.timeout(4000),
+          });
+          if (res.ok) {
+            const view = (await res.json()) as RoomView;
+            setRoom(view);
+            if (
+              view.status === "live" &&
+              (modeRef.current === "hls" || modeRef.current === "pending") &&
+              Date.now() - lastAttemptRef.current > LIVEKIT_RETRY_MS
+            ) {
+              setConnectAttempt((n) => n + 1);
+            }
+          } else if (res.status === 404) {
+            setRoom("not_found"); // ended demo rooms are deleted server-side
+          }
+        } catch {
+          /* keep last known state */
+        }
+      })();
+    }, 10_000);
+    return () => clearInterval(t);
+  }, [roomId, polling]);
+
+  // The ended screen must actually stop everything: the in-flight or live
+  // LiveKit connection, hidden audio, HLS segment loading, and the poll.
+  useEffect(() => {
+    if (!roomGone) return;
+    if (cancelTokenRef.current) cancelTokenRef.current.cancelled = true;
+    lkRef.current?.disconnect();
+    lkRef.current = null;
+    setMode("pending");
+  }, [roomGone]);
+
+  // Demo/fallback playback via HLS.
   useEffect(() => {
     const el = videoRef.current;
-    if (!el || room === "not_found") return;
+    if (!el || mode !== "hls") return;
     let cancelled = false;
     let hls: { destroy: () => void } | null = null;
     const tryPlay = () => {
-      if (cancelled || !el.paused) return;
-      el.play()
-        .then(() => setNeedsTap(false))
-        .catch((err: DOMException) => {
-          if (err?.name === "NotAllowedError") setNeedsTap(true);
-        });
+      if (!cancelled && el.paused) {
+        el.play()
+          .then(() => setNeedsTap(false))
+          .catch((err: DOMException) => {
+            if (err?.name === "NotAllowedError") setNeedsTap(true);
+          });
+      }
     };
     el.addEventListener("canplay", tryPlay);
     if (el.canPlayType("application/vnd.apple.mpegurl") !== "") {
@@ -126,10 +273,9 @@ export default function LiveRoomPage() {
       el.removeEventListener("canplay", tryPlay);
       hls?.destroy();
     };
-  }, [room]);
+  }, [mode]);
 
-  // Deal countdown ticks to zero and then reads "ended" — never a frozen
-  // 00:00:00 that still looks claimable.
+  // Deal countdown reaches zero and reads "ended" — never a frozen 00:00:00.
   useEffect(() => {
     if (dealLeft === null) return;
     const t = setInterval(() => setDealLeft((s) => (s === null ? null : Math.max(0, s - 1))), 1000);
@@ -142,8 +288,6 @@ export default function LiveRoomPage() {
     setDraft("");
     setMessages((m) => [...m, { from: "You", text }]);
     track({ type: "live.chat", subjectId: roomId, surface: "live" });
-    // Demo: scripted host reply. Production: chat goes to the question ranker;
-    // the avatar answers selected questions on-stream.
     const { reply } = await apiPost<{ reply: string }>(
       "/v1/agents/shopper",
       { message: text },
@@ -165,10 +309,26 @@ export default function LiveRoomPage() {
     );
   }
 
+  if (room && room.status === "ended") {
+    return (
+      <main className="page page--pad" style={{ textAlign: "center", paddingTop: 80 }}>
+        <div style={{ fontSize: 48 }}>👋</div>
+        <h1 className="page-title">The stream just ended</h1>
+        <p className="page-sub">Thanks for watching {room.title}.</p>
+        <Link href="/live" className="btn btn-primary" style={{ width: "auto" }}>
+          See who&rsquo;s live now
+        </Link>
+      </main>
+    );
+  }
+
   const dealActive = Boolean(room?.flashDeal) && dealLeft !== null && dealLeft > 0;
   const hh = Math.floor((dealLeft ?? 0) / 3600);
   const mm = Math.floor(((dealLeft ?? 0) % 3600) / 60);
   const ss = (dealLeft ?? 0) % 60;
+  // A real room falling back to the sample loop must say so — a viewer must
+  // never mistake the demo film for the seller's actual stream.
+  const sampleFallback = !DEMO_MODE && mode === "hls";
 
   return (
     <main className="page page--pad">
@@ -185,7 +345,23 @@ export default function LiveRoomPage() {
       </div>
 
       <div className="live-stage">
-        <video ref={videoRef} playsInline muted={muted} loop poster="/posters/poster-a.png" />
+        <video ref={videoRef} playsInline muted={muted} loop={mode === "hls"} poster="/posters/poster-a.png" />
+        {sampleFallback && (
+          <span
+            style={{
+              position: "absolute",
+              top: 10,
+              left: 10,
+              background: "rgba(0,0,0,0.6)",
+              color: "#fff",
+              fontSize: 12,
+              padding: "4px 8px",
+              borderRadius: 6,
+            }}
+          >
+            Sample preview — live video unavailable
+          </span>
+        )}
         <button className="live-mute" onClick={toggleMute} aria-label={muted ? "Unmute" : "Mute"}>
           {muted ? "🔇" : "🔊"}
         </button>
@@ -232,8 +408,6 @@ export default function LiveRoomPage() {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            // Enter during IME composition (pinyin/Jawi input) commits the
-            // candidate, it doesn't send.
             if (e.nativeEvent.isComposing || e.keyCode === 229) return;
             if (e.key === "Enter") void send();
           }}

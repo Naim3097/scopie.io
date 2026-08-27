@@ -42,7 +42,7 @@ create `apps/web/.env.local` containing **only the `NEXT_PUBLIC_*` lines**
 | Event pipeline + counters | `REDIS_URL` + `pnpm dev:worker` |
 | Product search | `MEILI_HOST` (docker compose provides one) — catalog writes auto-index |
 | Multi-vendor catalog | `MEDUSA_URL` reads from Medusa's store API; unset, the catalog is Postgres `catalog_products` (DB mode) or the demo array. Seller Centre (`/sell`) writes to Postgres/demo — the Mercur vendor write path is pending. |
-| Live viewer tokens (API only) | `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` — the web player integration is pending; the room page still plays the demo stream |
+| Live streaming | `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` — viewers join over WebRTC (subscribe-only tokens), sellers broadcast camera+mic from `/studio` (publisher tokens, owner-gated). Without them, rooms are clearly-labeled simulations over the demo stream. |
 | Payments (sandbox) | `LEANX_*` credentials + `API_PUBLIC_URL` (server-side only — see below) |
 | Creator uploads | `CF_ACCOUNT_ID` + `CF_STREAM_TOKEN` + `CF_WEBHOOK_SECRET` (+ DB + auth) — direct-to-Cloudflare uploads, ready-webhook, caption moderation, feed. Without them, `/create` demo-publishes a sample clip. |
 
