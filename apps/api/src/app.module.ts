@@ -2,6 +2,9 @@ import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { Db } from "./db";
+import { AuthService } from "./auth/auth.service";
+import { AuthGuard } from "./auth/auth.guard";
+import { ProfilesService } from "./auth/profiles.service";
 import { FeedController } from "./feed/feed.controller";
 import { FeedService } from "./feed/feed.service";
 import { EventsController } from "./events/events.controller";
@@ -34,6 +37,9 @@ import { AgentsController } from "./agents/agents.controller";
   ],
   providers: [
     Db,
+    AuthService,
+    AuthGuard,
+    ProfilesService,
     FeedService,
     EventsService,
     ProductsService,

@@ -13,6 +13,8 @@ import { randomUUID } from "node:crypto";
 import type { PaymentGateway, PaymentStatus, PaymentWebhookEvent } from "@scopie/core";
 import { WalletService } from "../wallet/wallet.service";
 import { ProductsService } from "../products/products.service";
+import { ProfilesService } from "../auth/profiles.service";
+import type { AuthedUser } from "../auth/auth.service";
 import { Db } from "../db";
 import { BoundedMap } from "../util/bounded-map";
 
@@ -23,7 +25,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export interface CheckoutRequest {
   orderId: string;
-  buyerId: string;
+  /** Guard-attached identity — never a client-supplied id. */
+  buyer: AuthedUser;
   /** Price is derived server-side from the product — never from the client. */
   productId: string;
   quantity: number;
@@ -31,6 +34,7 @@ export interface CheckoutRequest {
 }
 
 interface DemoOrder {
+  buyerId: string;
   amountSen: number;
   sellerId: string;
   productId: string;
@@ -64,6 +68,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     @Inject("PAYMENT_GATEWAY") private readonly gateway: PaymentGateway,
     @Inject(WalletService) private readonly wallet: WalletService,
     @Inject(ProductsService) private readonly products: ProductsService,
+    @Inject(ProfilesService) private readonly profiles: ProfilesService,
     @Inject(Db) private readonly db: Db,
   ) {}
 
@@ -117,10 +122,15 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     const product = await this.products.getById(req.productId);
     if (!product) throw new NotFoundException("product not found");
     const amountSen = product.priceSen * req.quantity;
+    const buyerId = req.buyer.id;
 
     const pool = this.db.get();
-    const isDbOrder = Boolean(pool) && UUID_RE.test(req.buyerId) && UUID_RE.test(product.sellerId);
+    const isDbOrder =
+      Boolean(pool) && !req.buyer.isGuest && UUID_RE.test(buyerId) && UUID_RE.test(product.sellerId);
     if (isDbOrder && pool) {
+      // Belt-and-braces: the Supabase signup trigger normally creates the
+      // profile; this covers dev Postgres and pre-trigger users (FK target).
+      await this.profiles.ensure(req.buyer);
       // Row exists BEFORE the gateway knows about the order. A re-call with
       // the same orderId must not change the amount (insert-only semantics).
       try {
@@ -129,7 +139,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
            values ($1,$2,$3,$4,$5,$6)
            on conflict (id) do nothing
            returning id`,
-          [req.orderId, req.buyerId, product.sellerId, product.id, req.quantity, amountSen],
+          [req.orderId, buyerId, product.sellerId, product.id, req.quantity, amountSen],
         );
         if (res.rowCount === 0) {
           const existing = await pool.query(`select amount_sen, payment_status from orders_ref where id=$1`, [
@@ -148,10 +158,11 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       }
     } else {
       const existing = this.demoOrders.get(req.orderId);
-      if (existing && existing.amountSen !== amountSen) {
+      if (existing && (existing.amountSen !== amountSen || existing.buyerId !== buyerId)) {
         throw new ConflictException("order already exists with different terms");
       }
       this.demoOrders.set(req.orderId, {
+        buyerId,
         amountSen,
         sellerId: product.sellerId,
         productId: product.id,
@@ -164,7 +175,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       orderId: req.orderId,
       amountSen,
       currency: "MYR",
-      buyerId: req.buyerId,
+      buyerId,
       description: product.title.slice(0, 140),
       returnUrl: req.returnUrl,
     });
@@ -338,15 +349,15 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** Authoritative status for the return page + reconciliation. */
-  async getOrderStatus(orderId: string): Promise<{ status: PaymentStatus }> {
+  /** Authoritative status for the return page. Owner-scoped: callers see only their own orders. */
+  async getOrderStatus(orderId: string, user: AuthedUser): Promise<{ status: PaymentStatus }> {
     const pool = this.db.get();
 
     // DB path first; fall through to the demo store if the row is absent.
-    if (pool && UUID_RE.test(orderId)) {
+    if (pool && UUID_RE.test(orderId) && !user.isGuest) {
       const res = await pool.query(
-        `select payment_status, provider_ref, amount_sen from orders_ref where id=$1`,
-        [orderId],
+        `select payment_status, provider_ref, amount_sen from orders_ref where id=$1 and buyer_id=$2`,
+        [orderId, user.id],
       );
       const row = res.rows[0];
       if (row) {
@@ -374,7 +385,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     }
 
     const demo = this.demoOrders.get(orderId);
-    if (!demo) throw new NotFoundException("order not found");
+    if (!demo || demo.buyerId !== user.id) throw new NotFoundException("order not found");
     if (demo.status === "pending" && demo.providerRef) {
       const s = await this.gateway.getPaymentStatus(demo.providerRef);
       if (s === "paid") await this.markPaidDemo(orderId, demo.amountSen);

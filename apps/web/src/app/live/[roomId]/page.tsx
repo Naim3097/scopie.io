@@ -146,7 +146,7 @@ export default function LiveRoomPage() {
     // the avatar answers selected questions on-stream.
     const { reply } = await apiPost<{ reply: string }>(
       "/v1/agents/shopper",
-      { buyerId: "demo-buyer", message: text },
+      { message: text },
       { reply: "Sure! Let me show you another colour ✨" },
     );
     setTimeout(() => setMessages((m) => [...m, { from: "Scopie", text: reply, isHost: true }]), 900);

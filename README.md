@@ -37,6 +37,7 @@ create `apps/web/.env.local` containing **only the `NEXT_PUBLIC_*` lines**
 
 | Feature | Turn on with |
 |---|---|
+| Sign-in (email OTP; phone/WhatsApp next) | `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (web) and `SUPABASE_JWT_SECRET` (API); apply `0003_supabase_auth.sql` on the Supabase project. Without them the app runs in guest mode. |
 | Events persistence + ledger tables | `DATABASE_URL` (then apply `packages/db/migrations/`). Order/escrow flow additionally needs real UUID identities (auth phase) — demo identities stay in the in-memory demo store. |
 | Event pipeline + counters | `REDIS_URL` + `pnpm dev:worker` |
 | Product search | `MEILI_HOST` (docker compose provides one) |

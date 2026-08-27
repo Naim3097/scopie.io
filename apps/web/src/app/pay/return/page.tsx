@@ -4,8 +4,9 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { API_BASE, DEMO_MODE } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/supabase";
 
-type ViewState = "checking" | "paid" | "failed" | "pending" | "demo" | "none";
+type ViewState = "checking" | "paid" | "failed" | "pending" | "demo" | "none" | "signin";
 
 /**
  * Landing here proves only that the gateway redirected back — it happens on
@@ -26,7 +27,11 @@ function ReturnInner() {
       // With a local API running, poke the status endpoint once so its demo
       // order runs the full markPaid/escrow flow (best-effort).
       if (demo && orderId && !DEMO_MODE) {
-        void fetch(`${API_BASE}/v1/payments/orders/${orderId}/status`, { cache: "no-store" }).catch(() => undefined);
+        void getAuthHeaders()
+          .then((headers) =>
+            fetch(`${API_BASE}/v1/payments/orders/${orderId}/status`, { cache: "no-store", headers }),
+          )
+          .catch(() => undefined);
       }
       return;
     }
@@ -35,7 +40,16 @@ function ReturnInner() {
     const poll = async () => {
       attempts += 1;
       try {
-        const res = await fetch(`${API_BASE}/v1/payments/orders/${orderId}/status`, { cache: "no-store" });
+        const res = await fetch(`${API_BASE}/v1/payments/orders/${orderId}/status`, {
+          cache: "no-store",
+          headers: await getAuthHeaders(),
+        });
+        if (res.status === 401) {
+          // Session lost across the bank redirect — ask them to sign back in
+          // and land right back on this status page.
+          if (!stopped) setState("signin");
+          return;
+        }
         if (res.ok) {
           const { status } = (await res.json()) as { status: string };
           if (stopped) return;
@@ -73,15 +87,26 @@ function ReturnInner() {
       title: "No order to show",
       sub: "There's nothing waiting here — browse Discover to find something you'll love.",
     },
+    signin: {
+      icon: "🔐",
+      title: "Sign in to see your order",
+      sub: "You were signed out during payment. Sign back in and we'll show your order status.",
+    },
   }[state];
+
+  const backHref =
+    state === "signin" && orderId
+      ? `/auth?next=${encodeURIComponent(`/pay/return?order=${orderId}`)}`
+      : "/discover";
+  const backLabel = state === "signin" ? "Sign in" : "Back to Discover";
 
   return (
     <main className="page page--pad" style={{ textAlign: "center", paddingTop: 80 }}>
       <div style={{ fontSize: 56 }}>{view.icon}</div>
       <h1 className="page-title">{view.title}</h1>
       <p className="page-sub">{view.sub}</p>
-      <Link href="/discover" className="btn btn-ghost">
-        Back to Discover
+      <Link href={backHref} className={state === "signin" ? "btn btn-primary" : "btn btn-ghost"} style={{ width: "auto" }}>
+        {backLabel}
       </Link>
     </main>
   );

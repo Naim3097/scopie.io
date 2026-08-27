@@ -1,28 +1,40 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import type { Product } from "@scopie/core";
 import { formatRM } from "@/lib/demo";
 import { API_BASE, DEMO_MODE } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/supabase";
+import { useSession } from "@/lib/session";
 import { flush, track } from "@/lib/events";
 
 /**
  * Product card with "Buy with Scopie Pay". Checkout is always pass-through:
- * the API derives the price from the catalog (the client never names an
- * amount) and returns a hosted payment URL, branded as Scopie. A failed
- * checkout shows an error — it must never look like a completed payment.
+ * the API derives the price from the catalog and identity from the auth
+ * token (or the guest header in demo mode). A failed checkout shows an
+ * error — it must never look like a completed payment.
  */
 export function ProductCard({ product }: { product: Product }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const session = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const buy = async () => {
     if (busy) return; // double-taps must not mint a second order
+    // With real auth configured, buying requires being signed in.
+    if (session.authEnabled && !session.userId) {
+      router.push(`/auth?next=${encodeURIComponent(pathname ?? "/discover")}`);
+      return;
+    }
     setBusy(true);
     setError(null);
     track({ type: "product.add_to_cart", subjectId: product.id, surface: "discover" });
     const orderId = crypto.randomUUID();
-    const returnUrl = `${window.location.origin}/pay/return`;
+    // Carry the order id so the return page can poll webhook-verified status.
+    const returnUrl = `${window.location.origin}/pay/return?order=${orderId}`;
     if (DEMO_MODE) {
       // No API deployed: show the demo flow explicitly, no network attempt.
       window.location.href = `/pay/return?demo_paid=1&order=${orderId}`;
@@ -32,10 +44,14 @@ export function ProductCard({ product }: { product: Product }) {
       await flush(); // don't lose the intent event to the navigation
       const res = await fetch(`${API_BASE}/v1/payments/checkout`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ orderId, buyerId: "demo-buyer", productId: product.id, quantity: 1, returnUrl }),
+        headers: { "content-type": "application/json", ...(await getAuthHeaders()) },
+        body: JSON.stringify({ orderId, productId: product.id, quantity: 1, returnUrl }),
         signal: AbortSignal.timeout(8000),
       });
+      if (res.status === 401) {
+        router.push(`/auth?next=${encodeURIComponent(pathname ?? "/discover")}`);
+        return;
+      }
       if (!res.ok) {
         setError("Checkout couldn't start. Please try again.");
         setBusy(false);

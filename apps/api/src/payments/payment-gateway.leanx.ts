@@ -1,5 +1,6 @@
-import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import { Injectable, Logger } from "@nestjs/common";
+import { verifyHs256Jwt } from "../util/jwt";
 import type {
   CreateCollectionInput,
   CreateCollectionResult,
@@ -81,11 +82,13 @@ export class LeanXGateway implements PaymentGateway {
 
   async createCollection(input: CreateCollectionInput): Promise<CreateCollectionResult> {
     if (!this.configured) {
-      // Demo mode: a fake hosted-checkout URL on scopie.io so the flow is testable.
-      return {
-        paymentUrl: `${input.returnUrl}?demo_paid=1&order=${encodeURIComponent(input.orderId)}`,
-        providerRef: `demo-${input.orderId}`,
-      };
+      // Demo mode: a fake hosted-checkout URL on scopie.io so the flow is
+      // testable. Append params via the URL API — returnUrl already carries
+      // ?order=, so a hardcoded "?" would produce a malformed double-query.
+      const url = new URL(input.returnUrl);
+      url.searchParams.set("demo_paid", "1");
+      url.searchParams.set("order", input.orderId);
+      return { paymentUrl: url.toString(), providerRef: `demo-${input.orderId}` };
     }
     if (!process.env.API_PUBLIC_URL) {
       // A configured gateway with no public callback URL would send success
@@ -122,7 +125,7 @@ export class LeanXGateway implements PaymentGateway {
     try {
       const body = JSON.parse(rawBody.toString("utf8")) as { data?: string };
       if (!body.data) return null;
-      const payload = this.verifyJwtHs256(body.data);
+      const payload = verifyHs256Jwt(body.data, this.hashKey);
       if (!payload) return null;
       const orderId = String(
         (payload["client_data"] as Record<string, unknown> | undefined)?.["merchant_invoice_no"] ??
@@ -152,18 +155,6 @@ export class LeanXGateway implements PaymentGateway {
       this.logger.warn(`webhook parse failure: ${(err as Error).message}`);
       return null;
     }
-  }
-
-  /** Minimal HS256 JWT verification with the merchant hash key (no deps). */
-  private verifyJwtHs256(token: string): Record<string, unknown> | null {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const [header, payload, sig] = parts as [string, string, string];
-    const expected = createHmac("sha256", this.hashKey).update(`${header}.${payload}`).digest("base64url");
-    const a = Buffer.from(sig);
-    const b = Buffer.from(expected);
-    if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
-    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<string, unknown>;
   }
 
   async getPaymentStatus(providerRef: string): Promise<PaymentStatus> {

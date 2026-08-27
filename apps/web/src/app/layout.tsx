@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 import { PwaRegister } from "@/components/PwaRegister";
+import { SessionProvider } from "@/lib/session";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://scopie.io"),
@@ -51,7 +52,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <PwaRegister />
-        <AppShell>{children}</AppShell>
+        <SessionProvider>
+          <AppShell>{children}</AppShell>
+        </SessionProvider>
       </body>
     </html>
   );

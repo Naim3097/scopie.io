@@ -17,9 +17,17 @@ import { z } from "zod";
 const API = process.env.SCOPIE_API_URL ?? "http://localhost:4000";
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  // Identity for every tool call rides here: SCOPIE_API_TOKEN (the buyer's
+  // Supabase access token) in configured mode, or the guest header mirroring
+  // the web's device id in demo mode.
+  const authHeaders: Record<string, string> = process.env.SCOPIE_API_TOKEN
+    ? { authorization: `Bearer ${process.env.SCOPIE_API_TOKEN}` }
+    : process.env.SCOPIE_GUEST_ID
+      ? { "x-scopie-guest": process.env.SCOPIE_GUEST_ID }
+      : {};
   const res = await fetch(`${API}${path}`, {
     ...init,
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
+    headers: { "content-type": "application/json", ...authHeaders, ...(init?.headers ?? {}) },
   });
   if (!res.ok) throw new Error(`Scopie API ${res.status} on ${path}`);
   return (await res.json()) as T;
@@ -49,12 +57,12 @@ server.tool(
 
 server.tool(
   "add_to_cart",
-  "Add a product to the buyer's cart. Never charges — checkout is a separate human-confirmed step.",
-  { buyerId: z.string().min(1), productId: z.string().min(1), quantity: z.number().int().min(1).max(20).default(1) },
-  async ({ buyerId, productId, quantity }) => {
+  "Add a product to the current buyer's cart. Never charges — checkout is a separate human-confirmed step.",
+  { productId: z.string().min(1), quantity: z.number().int().min(1).max(20).default(1) },
+  async ({ productId, quantity }) => {
     const cart = await api<unknown>(`/v1/cart/items`, {
       method: "POST",
-      body: JSON.stringify({ buyerId, productId, quantity }),
+      body: JSON.stringify({ productId, quantity }),
     });
     return { content: [{ type: "text", text: JSON.stringify(cart) }] };
   },

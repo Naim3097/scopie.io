@@ -56,7 +56,7 @@ export default function ShopPage() {
     };
     const res = await apiPost<{ reply: string; products: Product[] }>(
       "/v1/agents/shopper",
-      { buyerId: "demo-buyer", message: text },
+      { message: text },
       fallback,
     );
     // Never promise results over an empty grid, whatever the source said.

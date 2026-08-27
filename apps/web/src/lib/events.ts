@@ -2,6 +2,8 @@
 
 import type { EngagementEvent } from "@scopie/core";
 import { API_BASE, DEMO_MODE } from "./api";
+import { getClientId } from "./identity";
+import { getAuthHeaders } from "./supabase";
 
 /**
  * Client event tracker: batches engagement events and flushes every 3 s or on
@@ -19,24 +21,16 @@ import { API_BASE, DEMO_MODE } from "./api";
 
 let queue: EngagementEvent[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
+let trackedUser: string | null = null;
 
-function anonId(): string {
-  try {
-    const key = "scopie_anon_id";
-    let id = localStorage.getItem(key);
-    if (!id) {
-      id = `anon:${crypto.randomUUID()}`;
-      localStorage.setItem(key, id);
-    }
-    return id;
-  } catch {
-    return "anon:unknown";
-  }
+/** Set by the session provider so authed activity is attributed correctly. */
+export function setTrackedUser(userId: string | null): void {
+  trackedUser = userId;
 }
 
 export function track(event: Omit<EngagementEvent, "userId" | "ts">): void {
   if (DEMO_MODE) return; // no API configured — never build an unbounded queue
-  queue.push({ ...event, userId: anonId(), ts: new Date().toISOString() } as EngagementEvent);
+  queue.push({ ...event, userId: trackedUser ?? getClientId(), ts: new Date().toISOString() } as EngagementEvent);
   if (queue.length >= 20) {
     void flush();
   } else if (!timer) {
@@ -59,9 +53,13 @@ export async function flush(useBeacon = false): Promise<void> {
       if (!ok) queue.unshift(...events);
       return;
     }
+    // Attach identity so the server stamps authed events to the real uid
+    // (the beacon path above can't carry headers — page-hide events stay
+    // client-attributed, which is acceptable).
+    const authHeaders = await getAuthHeaders();
     const res = await fetch(`${API_BASE}/v1/events`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...authHeaders },
       body: payload,
       keepalive: true,
     });

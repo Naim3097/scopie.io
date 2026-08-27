@@ -3,7 +3,6 @@ import { z } from "zod";
 import { ProductsService } from "../products/products.service";
 
 const ShopperBody = z.object({
-  buyerId: z.string().min(1),
   message: z.string().min(1).max(1000),
 });
 

@@ -9,11 +9,14 @@ import {
   Post,
   RawBodyRequest,
   Req,
+  UseGuards,
 } from "@nestjs/common";
 import type { Request } from "express";
 import { z } from "zod";
 import type { PaymentGateway } from "@scopie/core";
 import { PaymentsService } from "./payments.service";
+import { AuthGuard, CurrentUser } from "../auth/auth.guard";
+import type { AuthedUser } from "../auth/auth.service";
 
 /** Exact-origin allowlist — never string prefixes (scopie.io.evil.com must fail). */
 function isAllowedReturnOrigin(raw: string): boolean {
@@ -28,8 +31,7 @@ function isAllowedReturnOrigin(raw: string): boolean {
 
 const CheckoutBody = z.object({
   orderId: z.string().uuid(),
-  buyerId: z.string().min(1),
-  // Price is derived server-side from the product — the client never names an amount.
+  // Identity comes from the auth token — never from the body.
   productId: z.string().min(1),
   quantity: z.number().int().min(1).max(20).default(1),
   returnUrl: z.string().url().refine(isAllowedReturnOrigin, "returnUrl must be a Scopie origin"),
@@ -44,22 +46,23 @@ export class PaymentsController {
 
   /** Client-facing: returns only { paymentUrl }. Branded as Scopie Pay in the app. */
   @Post("checkout")
-  async checkout(@Body() body: unknown) {
+  @UseGuards(AuthGuard)
+  async checkout(@Body() body: unknown, @CurrentUser() user: AuthedUser) {
     const parsed = CheckoutBody.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
-    return this.payments.createCheckout(parsed.data);
+    return this.payments.createCheckout({ ...parsed.data, buyer: user });
   }
 
   /**
-   * Authoritative order status for the return page (which must never claim
-   * success from a mere redirect) and for reconciliation. Triggers a gateway
-   * poll when the order is still pending — the gateway's webhooks fire on
-   * success only.
+   * Authoritative order status for the return page. Owner-scoped: you can
+   * only poll your own orders. Triggers a gateway reconcile while pending —
+   * the gateway's webhooks fire on success only.
    */
   @Get("orders/:orderId/status")
-  async orderStatus(@Param("orderId") orderId: string) {
+  @UseGuards(AuthGuard)
+  async orderStatus(@Param("orderId") orderId: string, @CurrentUser() user: AuthedUser) {
     if (!z.string().uuid().safeParse(orderId).success) throw new BadRequestException("invalid order id");
-    return this.payments.getOrderStatus(orderId);
+    return this.payments.getOrderStatus(orderId, user);
   }
 
   /** Gateway callback. Signature-verified; forgeries are rejected and logged. */
