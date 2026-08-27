@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { Db } from "./db";
 import { FeedController } from "./feed/feed.controller";
 import { FeedService } from "./feed/feed.service";
@@ -16,6 +18,11 @@ import { WalletService } from "./wallet/wallet.service";
 import { AgentsController } from "./agents/agents.controller";
 
 @Module({
+  imports: [
+    // Blunt per-IP rate limit on every route: an unauthenticated public API
+    // (events ingest especially) must not be a free write-amplifier.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
+  ],
   controllers: [
     FeedController,
     EventsController,
@@ -36,6 +43,7 @@ import { AgentsController } from "./agents/agents.controller";
     // The payment gateway is bound by PORT, not by vendor. Swapping providers
     // is a one-line change here and nowhere else.
     { provide: "PAYMENT_GATEWAY", useClass: LeanXGateway },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

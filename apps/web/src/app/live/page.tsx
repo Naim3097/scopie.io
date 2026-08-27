@@ -10,7 +10,7 @@ export default function LiveListPage() {
   const [rooms, setRooms] = useState<LiveRoom[]>([]);
 
   useEffect(() => {
-    void apiGet<LiveRoom[]>("/v1/live/rooms", demoRooms).then(setRooms);
+    void apiGet<LiveRoom[]>("/v1/live/rooms", demoRooms).then((r) => setRooms(r.length > 0 ? r : demoRooms));
   }, []);
 
   return (

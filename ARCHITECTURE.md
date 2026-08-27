@@ -40,8 +40,10 @@ Full research behind these choices: see the published stack report
 
 - **Video feed**: iOS Safari plays HLS natively; everywhere else `hls.js`.
   The TikTok feel is a client pattern (scroll-snap + IntersectionObserver +
-  preload window + play/pause on visibility), implemented in
-  `apps/web/src/components/feed/`.
+  a SINGLE attached player + stall watchdog), implemented in
+  `apps/web/src/components/feed/`. Media never attaches to non-active cards
+  — phones allow very few concurrent decoders; preload-ahead returns later
+  via a reused player pool, never parallel pipelines.
 - **Live**: LiveKit has a first-class web SDK; big audiences get HLS anyway.
 - **Payments**: FPX/DuitNow/e-wallet checkouts are redirect/QR flows — born
   for the web. No Apple IAP constraints on web distribution.
@@ -82,8 +84,10 @@ white-labeled; `apps/web` may never contain its name):
   merchant hash key; `x-signature`/`x-timestamp`/`x-nonce`, 5-min window).
 - Webhooks arrive as an HS256 JWT signed with the hash key — verified in
   `LeanXGateway.verifyWebhook`, forgeries rejected. **Callbacks fire on
-  success only**, so a reconciliation poller (worker) polls every open order
-  to a terminal state. This is mandatory, not optional.
+  success only**, so the API runs a reconciliation loop
+  (`PaymentsService.reconcilePending`, 60 s, armed when DB + gateway are
+  configured) that drives every open order to a terminal state, plus
+  on-demand reconcile when the return page polls order status.
 - Payouts: real-time to any MY bank account, with `check-verification-bank`
   name-matching at seller onboarding. Funded from a prefund pool that needs
   balance monitoring (`overall-balance`, error 5993 = insufficient).

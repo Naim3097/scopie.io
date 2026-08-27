@@ -24,26 +24,37 @@ export class EventsService {
           removeOnFail: { age: 86_400 },
         },
       });
+      // A Redis blip emits 'error' on the queue; unhandled, it kills the process.
+      this.queue.on("error", (err) => this.logger.error(`events queue error: ${err.message}`));
     }
   }
 
   async ingest(events: EngagementEvent[]): Promise<{ accepted: number }> {
     const pool = this.db.get();
     if (pool) {
-      const text =
-        "insert into engagement_events (event_type, user_id, subject_id, watch_ms, duration_ms, surface, client_ts, meta) values ($1,$2,$3,$4,$5,$6,$7,$8)";
-      for (const e of events) {
-        await pool.query(text, [
-          e.type,
-          e.userId,
-          e.subjectId,
-          e.watchMs ?? null,
-          e.durationMs ?? null,
-          e.surface,
-          e.ts ?? null,
-          e.meta ? JSON.stringify(e.meta) : null,
-        ]);
-      }
+      // One multi-row INSERT: atomic (no partially-persisted batches to
+      // duplicate on client retry) and one round trip instead of N.
+      const values: unknown[] = [];
+      const rows = events
+        .map((e, i) => {
+          const base = i * 8;
+          values.push(
+            e.type,
+            e.userId,
+            e.subjectId,
+            e.watchMs ?? null,
+            e.durationMs ?? null,
+            e.surface,
+            e.ts ?? null,
+            e.meta ? JSON.stringify(e.meta) : null,
+          );
+          return `($${base + 1},$${base + 2},$${base + 3},$${base + 4},$${base + 5},$${base + 6},$${base + 7},$${base + 8})`;
+        })
+        .join(",");
+      await pool.query(
+        `insert into engagement_events (event_type, user_id, subject_id, watch_ms, duration_ms, surface, client_ts, meta) values ${rows}`,
+        values,
+      );
     } else {
       this.logger.debug(`demo mode: ${events.length} events (not persisted)`);
     }

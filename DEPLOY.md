@@ -6,8 +6,9 @@ Vercel hosts **`apps/web`** (the Next.js PWA). With no `NEXT_PUBLIC_API_URL`
 set, the build runs in **pure demo mode** — the same feed, Discover, Live
 room, AI shopper, and demo checkout you see locally, with zero backend calls.
 The NestJS API, worker, and commerce backend deploy later (Railway/Fly
-Singapore per `ARCHITECTURE.md`); when they exist, setting one env var
-switches the live site from demo to real.
+Singapore per `ARCHITECTURE.md`); when they exist, setting
+`NEXT_PUBLIC_API_URL` **plus a redeploy** switches the live site from demo
+to real (the value is baked in at build time).
 
 ## 1 · Vercel setup
 
@@ -19,7 +20,10 @@ switches the live site from demo to real.
      from the root `packageManager` field and installs the whole workspace;
      the root `postinstall` builds `@scopie/core` before `next build`).
 3. Environment variables: **none needed** for the demo deployment.
-   Later, when the API is hosted: add `NEXT_PUBLIC_API_URL=https://api.scopie.io`.
+   Later, when the API is hosted: add `NEXT_PUBLIC_API_URL=https://api.scopie.io`
+   **and trigger a Redeploy** — `NEXT_PUBLIC_*` values are baked into the
+   client bundle at build time, not read at runtime; without a fresh build
+   the site stays in demo mode and nothing appears to change.
 4. Deploy. You get `scopie-io-<hash>.vercel.app` — verify `/feed` plays.
 
 ## 2 · Point scopie.io from Hostinger

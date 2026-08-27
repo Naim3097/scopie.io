@@ -3,8 +3,7 @@ import { z } from "zod";
 import { LiveService } from "./live.service";
 
 const TokenBody = z.object({
-  roomId: z.string().min(1),
-  identity: z.string().min(1).max(64),
+  roomId: z.string().min(1).max(64),
 });
 
 @Controller("v1/live")
@@ -31,7 +30,11 @@ export class LiveController {
       // Demo mode: the web app falls back to a looping HLS preview.
       return { demo: true, token: null, url: null };
     }
-    const token = await this.live.viewerToken(parsed.data.roomId, parsed.data.identity);
-    return { demo: false, token, url: process.env.LIVEKIT_URL ?? null };
+    try {
+      const { token, identity } = await this.live.viewerToken(parsed.data.roomId);
+      return { demo: false, token, identity, url: process.env.LIVEKIT_URL ?? null };
+    } catch {
+      throw new NotFoundException("room is not live");
+    }
   }
 }

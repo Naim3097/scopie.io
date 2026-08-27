@@ -34,6 +34,7 @@ export function ProductCard({ product }: { product: Product }) {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ orderId, buyerId: "demo-buyer", productId: product.id, quantity: 1, returnUrl }),
+        signal: AbortSignal.timeout(8000),
       });
       if (!res.ok) {
         setError("Checkout couldn't start. Please try again.");
@@ -43,8 +44,10 @@ export function ProductCard({ product }: { product: Product }) {
       const { paymentUrl } = (await res.json()) as { paymentUrl: string };
       window.location.href = paymentUrl;
     } catch {
-      // API unreachable = static demo preview: show the demo flow explicitly.
-      window.location.href = `/pay/return?demo_paid=1&order=${orderId}`;
+      // A configured-but-unreachable API is an OUTAGE, not demo mode: show an
+      // error. A failed checkout must never render as a completed payment.
+      setError("Checkout couldn't start — please check your connection and try again.");
+      setBusy(false);
     }
   };
 

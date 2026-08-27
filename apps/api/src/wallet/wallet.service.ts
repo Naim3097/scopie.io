@@ -56,6 +56,11 @@ export class WalletService {
     if (!pool) {
       const refKey = `${refType}|${refId}`;
       if (this.memoryRefs.has(refKey)) return false;
+      // Bounded demo store: an unauthenticated API must not grow unboundedly.
+      if (this.memory.length > 20_000) {
+        this.memory.splice(0, this.memory.length - 10_000);
+        this.memoryRefs.clear();
+      }
       this.memoryRefs.add(refKey);
       this.memory.push(...legs.map((l) => ({ ...l, txnId, refType, refId })));
       return true;

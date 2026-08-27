@@ -10,7 +10,10 @@ export default function DiscoverPage() {
   const [picks, setPicks] = useState<Product[]>([]);
 
   useEffect(() => {
-    void apiGet<Product[]>("/v1/products/picks?limit=12", demoProducts).then(setPicks);
+    void apiGet<Product[]>("/v1/products/picks?limit=12", demoProducts).then((p) =>
+      // 200 [] falls back to demo content — never an empty "AI Picks" grid.
+      setPicks(p.length > 0 ? p : demoProducts),
+    );
   }, []);
 
   return (

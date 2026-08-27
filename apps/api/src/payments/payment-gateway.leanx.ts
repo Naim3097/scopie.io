@@ -68,6 +68,9 @@ export class LeanXGateway implements PaymentGateway {
       method: "POST",
       headers: this.signedHeaders("POST", path),
       body: JSON.stringify(body),
+      // A hung upstream must fail in seconds — pending sockets pile up and
+      // make checkout appear globally down during a gateway incident.
+      signal: AbortSignal.timeout(10_000),
     });
     const json = (await res.json()) as { response_code: number; description?: string; data?: T };
     if (!res.ok || (json.response_code !== 2000 && json.response_code !== 2011 && json.response_code !== 2012)) {

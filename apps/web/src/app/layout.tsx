@@ -5,6 +5,7 @@ import { PwaRegister } from "@/components/PwaRegister";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://scopie.io"),
+  alternates: { canonical: "/" },
   title: { default: "Scopie", template: "%s · Scopie" },
   description: "Discover what's next, just for you. Social shopping with your AI personal shopper.",
   manifest: "/manifest.webmanifest",
@@ -40,9 +41,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
+        {/* Font FILES come from gstatic — without this preconnect, the first
+            paint pays a full extra DNS+TLS round trip on mobile. */}
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Instrument+Sans:wght@400;600;700&display=swap"
         />
       </head>
       <body>

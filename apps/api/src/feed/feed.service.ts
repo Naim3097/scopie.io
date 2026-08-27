@@ -3,9 +3,9 @@ import type { Video } from "@scopie/core";
 import { demoVideos } from "../demo/demo-data";
 
 /**
- * Phase-0 feed: heuristic ranking (recency × engagement rate × follow boost).
- * The same scoring doubles as "Trend Radar". Phase 1 swaps the source for
- * Gorse/Recombee recall — the API contract stays identical.
+ * Phase-0 feed: engagement-count heuristic over the demo set. Recency decay
+ * and follow boost land with the Postgres-backed feed; phase 1 swaps the
+ * source for Gorse/Recombee recall — the API contract stays identical.
  */
 @Injectable()
 export class FeedService {

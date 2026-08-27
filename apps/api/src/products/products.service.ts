@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { Product } from "@scopie/core";
 import { demoProducts } from "../demo/demo-data";
+import { BoundedMap } from "../util/bounded-map";
 
 interface CartItem {
   productId: string;
@@ -15,30 +16,40 @@ interface CartItem {
  */
 @Injectable()
 export class ProductsService {
-  private carts = new Map<string, CartItem[]>();
+  /** Bounded: unauthenticated callers must not be able to OOM the process. */
+  private carts = new BoundedMap<string, CartItem[]>(5000);
 
   async search(query: string, limit: number): Promise<Product[]> {
     if (process.env.MEILI_HOST) {
-      const res = await fetch(`${process.env.MEILI_HOST}/indexes/products/search`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          ...(process.env.MEILI_API_KEY ? { authorization: `Bearer ${process.env.MEILI_API_KEY}` } : {}),
-        },
-        body: JSON.stringify({ q: query, limit }),
-      });
-      if (res.ok) {
-        const json = (await res.json()) as { hits: Product[] };
-        return json.hits;
+      try {
+        const res = await fetch(`${process.env.MEILI_HOST}/indexes/products/search`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...(process.env.MEILI_API_KEY ? { authorization: `Bearer ${process.env.MEILI_API_KEY}` } : {}),
+          },
+          body: JSON.stringify({ q: query, limit }),
+          signal: AbortSignal.timeout(3000), // a slow Meili degrades to demo, never hangs the request
+        });
+        if (res.ok) {
+          const json = (await res.json()) as { hits: Product[] };
+          return json.hits;
+        }
+      } catch {
+        // fall through to the demo catalog
       }
     }
-    const q = query.toLowerCase();
+    // Word-level match: "running shoes" finds the runner instead of nothing.
+    const words = query.toLowerCase().split(/\s+/).filter((w) => w.length > 1);
+    if (words.length === 0) return [];
     return demoProducts
-      .filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          (p.variant ?? "").toLowerCase().includes(q) ||
-          p.tags.some((t) => t.toLowerCase().includes(q)),
+      .filter((p) =>
+        words.some(
+          (w) =>
+            p.title.toLowerCase().includes(w) ||
+            (p.variant ?? "").toLowerCase().includes(w) ||
+            p.tags.some((t) => t.includes(w) || w.includes(t)),
+        ),
       )
       .slice(0, limit);
   }

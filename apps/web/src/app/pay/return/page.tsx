@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { API_BASE, DEMO_MODE } from "@/lib/api";
 
-type ViewState = "checking" | "paid" | "failed" | "pending" | "demo";
+type ViewState = "checking" | "paid" | "failed" | "pending" | "demo" | "none";
 
 /**
  * Landing here proves only that the gateway redirected back — it happens on
@@ -20,7 +20,9 @@ function ReturnInner() {
 
   useEffect(() => {
     if (demo || !orderId || DEMO_MODE) {
-      if (!demo) setState("pending");
+      // No order reference (direct visit, stripped params) or no payment rail
+      // at all: never claim a bank transaction is in flight.
+      if (!demo) setState(orderId && !DEMO_MODE ? "pending" : "none");
       // With a local API running, poke the status endpoint once so its demo
       // order runs the full markPaid/escrow flow (best-effort).
       if (demo && orderId && !DEMO_MODE) {
@@ -65,6 +67,11 @@ function ReturnInner() {
       icon: "✅",
       title: "Demo checkout complete",
       sub: "No money moved. With a configured gateway, the order would now be in escrow until delivery.",
+    },
+    none: {
+      icon: "🛍️",
+      title: "No order to show",
+      sub: "There's nothing waiting here — browse Discover to find something you'll love.",
     },
   }[state];
 

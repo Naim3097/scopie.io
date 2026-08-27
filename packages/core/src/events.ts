@@ -29,16 +29,19 @@ export const EngagementEventType = z.enum([
 ]);
 export type EngagementEventType = z.infer<typeof EngagementEventType>;
 
+/** 6 hours — beyond any honest watch session; also fits int4 columns. */
+const MAX_MS = 6 * 60 * 60 * 1000;
+
 export const EngagementEvent = z.object({
   type: EngagementEventType,
   /** Authenticated user id (uuid) or anonymous device id prefixed "anon:" */
-  userId: z.string().min(1),
+  userId: z.string().min(1).max(128),
   /** Subject of the event: video id, product id, room id, profile id, or query string */
-  subjectId: z.string().min(1),
+  subjectId: z.string().min(1).max(256),
   /** Milliseconds watched — only for video.watch / video.complete / video.skip */
-  watchMs: z.number().int().nonnegative().optional(),
+  watchMs: z.number().int().nonnegative().max(MAX_MS).optional(),
   /** Total duration of the video in ms, when known */
-  durationMs: z.number().int().positive().optional(),
+  durationMs: z.number().int().positive().max(MAX_MS).optional(),
   /** Where it happened, for surface-level analysis */
   surface: z.enum(["feed", "discover", "live", "shop", "profile", "search"]).default("feed"),
   /** Client timestamp (server also stamps received_at authoritatively) */

@@ -1,8 +1,9 @@
 import { config as loadEnv } from "dotenv";
 import { resolve } from "node:path";
-// Load the repo-root .env (then a package-local .env can override). Without
-// this, tsx/node never see DATABASE_URL & co. and the stack silently stays in
-// demo mode.
+// Load the repo-root .env first; a package-local .env only fills variables
+// the root file left unset (dotenv never overwrites existing values).
+// Without this, tsx/node never see DATABASE_URL & co. and the stack silently
+// stays in demo mode.
 loadEnv({ path: resolve(__dirname, "../../../.env") });
 loadEnv();
 

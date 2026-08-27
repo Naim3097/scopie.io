@@ -13,10 +13,13 @@ export const API_BASE =
 
 export const DEMO_MODE = API_BASE === "";
 
+/** A hung API must degrade to demo data in seconds, not browser-default minutes. */
+const TIMEOUT_MS = 4000;
+
 export async function apiGet<T>(path: string, fallback: T): Promise<T> {
   if (DEMO_MODE) return fallback;
   try {
-    const res = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
+    const res = await fetch(`${API_BASE}${path}`, { cache: "no-store", signal: AbortSignal.timeout(TIMEOUT_MS) });
     if (!res.ok) return fallback;
     return (await res.json()) as T;
   } catch {
@@ -31,6 +34,7 @@ export async function apiPost<T>(path: string, body: unknown, fallback: T): Prom
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     if (!res.ok) return fallback;
     return (await res.json()) as T;

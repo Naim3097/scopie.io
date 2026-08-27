@@ -7,7 +7,7 @@
   --surface-2: #eeeef8;
   --ink: #191a2e;
   --muted: #5c5e7a;
-  --faint: #8b8da8;
+  --faint: #70738f; /* ≥4.5:1 on --bg — used on nav labels and small text */
   --line: #e2e3f0;
   --accent: #5556d6;
   --accent-soft: #e4e4fa;
@@ -127,8 +127,7 @@ button { font: inherit; cursor: pointer; }
   position: absolute; top: 12px; right: 12px; z-index: 3;
   width: 40px; height: 40px; border-radius: 50%;
   border: none; font-size: 17px;
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(8px);
+  background: rgba(20, 21, 40, 0.45);
   color: #fff;
 }
 .feed-item video {
@@ -151,18 +150,20 @@ button { font: inherit; cursor: pointer; }
 .feed-action {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   background: none; border: none; color: #fff; font-size: 11.5px;
+  /* legible over bright video */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
 }
 .feed-action .icon {
   width: 44px; height: 44px; border-radius: 50%;
-  background: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(8px);
+  /* solid dark base, no backdrop-filter: re-blurring over playing video every
+     frame drops frames on budget GPUs */
+  background: rgba(20, 21, 40, 0.45);
   display: grid; place-items: center; font-size: 20px;
 }
 .feed-action.liked .icon { background: var(--live); }
 .feed-product {
   display: flex; align-items: center; gap: 10px;
-  background: rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(12px);
+  background: rgba(20, 21, 40, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 14px; padding: 8px 12px; margin-bottom: 10px;
   color: #fff; width: fit-content; max-width: 82%;
@@ -178,7 +179,10 @@ button { font: inherit; cursor: pointer; }
   border-radius: var(--radius); overflow: hidden;
 }
 .card-body { padding: 10px 12px 12px; }
-.card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.card img {
+  width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
+  background: var(--surface-2); /* visible frame while loading / on failure */
+}
 .match {
   display: inline-block; font-size: 11px; font-weight: 600;
   color: var(--accent); background: var(--accent-soft);
@@ -216,7 +220,8 @@ button { font: inherit; cursor: pointer; }
 .live-topline { position: absolute; top: 12px; left: 12px; display: flex; gap: 8px; z-index: 2; }
 .live-pin {
   position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 2;
-  background: var(--surface-glass); backdrop-filter: blur(14px);
+  /* opaque over video — no per-frame backdrop re-blur on budget GPUs */
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 14px; padding: 10px 12px;
   display: flex; align-items: center; gap: 10px;
@@ -238,6 +243,9 @@ button { font: inherit; cursor: pointer; }
 .chatrow input {
   flex: 1; border: 1px solid var(--line); border-radius: 12px;
   padding: 11px 14px; font: inherit; background: var(--surface);
+  /* keep the focused input clear of the fixed bottom nav when the mobile
+     keyboard scrolls it into view */
+  scroll-margin-bottom: calc(var(--nav-h) + 16px);
 }
 .chatrow input:focus-visible { outline: 2px solid var(--accent); }
 
@@ -272,4 +280,11 @@ button { font: inherit; cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
+  /* A frozen partial ring reads as a glitch — show words instead. */
+  .buffering .ring { display: none; }
+  .buffering::after {
+    content: "Loading…";
+    color: #fff; font-size: 13px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  }
 }

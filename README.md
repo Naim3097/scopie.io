@@ -30,17 +30,19 @@ pnpm dev              # web on :3000 + api on :4000, both in demo mode
 ```
 
 Demo mode needs **zero infrastructure** — sample catalog, demo feed videos,
-scripted AI replies, and a fake checkout. Every integration lights up when its
-env vars are set (copy `.env.example` → `.env` and `apps/web/.env.local`):
+scripted AI replies, and a fake checkout. Integrations switch on per the table
+below. Copy `.env.example` → `.env` for the api/worker; for the web app,
+create `apps/web/.env.local` containing **only the `NEXT_PUBLIC_*` lines**
+(server credentials never belong inside `apps/web`, even on disk):
 
 | Feature | Turn on with |
 |---|---|
-| Real database + ledger | `DATABASE_URL` (then apply `packages/db/migrations/`) |
+| Events persistence + ledger tables | `DATABASE_URL` (then apply `packages/db/migrations/`). Order/escrow flow additionally needs real UUID identities (auth phase) — demo identities stay in the in-memory demo store. |
 | Event pipeline + counters | `REDIS_URL` + `pnpm dev:worker` |
 | Product search | `MEILI_HOST` (docker compose provides one) |
-| Live rooms (WebRTC) | `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` |
-| Payments (sandbox) | `LEANX_*` credentials (server-side only — see below) |
-| Marketplace backend | `MEDUSA_URL` (bootstrap per `apps/commerce/README.md`) |
+| Live viewer tokens (API only) | `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` — the web player integration is pending; the room page still plays the demo stream |
+| Payments (sandbox) | `LEANX_*` credentials + `API_PUBLIC_URL` (server-side only — see below) |
+| Marketplace backend | planned — `MEDUSA_URL` is reserved and not read by any code yet (bootstrap per `apps/commerce/README.md`) |
 
 Local infra: `docker compose -f docker-compose.dev.yml up -d` (Postgres,
 Redis, Meilisearch).

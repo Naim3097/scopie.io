@@ -16,8 +16,10 @@ export default function FeedPage() {
         apiGet<Video[]>("/v1/feed", demoVideos),
         apiGet<Product[]>("/v1/products/picks?limit=20", demoProducts),
       ]);
-      setVideos(feed);
-      setProducts(Object.fromEntries(picks.map((p) => [p.id, p])));
+      // An API that answers 200 [] must not strand users on a loading screen:
+      // fall back to demo content until real content exists.
+      setVideos(feed.length > 0 ? feed : demoVideos);
+      setProducts(Object.fromEntries((picks.length > 0 ? picks : demoProducts).map((p) => [p.id, p])));
     })();
   }, []);
 

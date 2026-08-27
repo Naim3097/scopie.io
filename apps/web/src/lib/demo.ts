@@ -2,6 +2,7 @@ import type { Product, Video, LiveRoom } from "@scopie/core";
 
 /** Client-side demo data, used when the API is unreachable (static preview). */
 
+// Product images are self-hosted (no third-party image host in the render path).
 export const demoProducts: Product[] = [
   {
     id: "p_luxe_bag",
@@ -9,9 +10,9 @@ export const demoProducts: Product[] = [
     title: "Luxe Leather Bag",
     variant: "Beige",
     priceSen: 18900,
-    imageUrl: "https://placehold.co/480x480/EDEDF7/5556D6?text=Luxe+Bag",
+    imageUrl: "/products/luxe-bag.png",
     matchScore: 98,
-    tags: ["fashion", "bags"],
+    tags: ["fashion", "bags", "bag", "leather"],
   },
   {
     id: "p_cloud_runner",
@@ -19,9 +20,9 @@ export const demoProducts: Product[] = [
     title: "Cloud Runner Pro",
     variant: "White / Grey",
     priceSen: 29900,
-    imageUrl: "https://placehold.co/480x480/EDEDF7/5556D6?text=Cloud+Runner",
+    imageUrl: "/products/cloud-runner.png",
     matchScore: 95,
-    tags: ["shoes"],
+    tags: ["shoes", "shoe", "sneakers", "running", "sport"],
   },
   {
     id: "p_elegant_watch",
@@ -29,9 +30,9 @@ export const demoProducts: Product[] = [
     title: "Elegant Watch",
     variant: "Rose Gold",
     priceSen: 25900,
-    imageUrl: "https://placehold.co/480x480/EDEDF7/5556D6?text=Watch",
+    imageUrl: "/products/elegant-watch.png",
     matchScore: 94,
-    tags: ["accessories"],
+    tags: ["accessories", "watch", "watches"],
   },
   {
     id: "p_eau_de_luxe",
@@ -39,14 +40,16 @@ export const demoProducts: Product[] = [
     title: "Eau De Luxe",
     variant: "50ml",
     priceSen: 14900,
-    imageUrl: "https://placehold.co/480x480/EDEDF7/5556D6?text=Eau+De+Luxe",
+    imageUrl: "/products/eau-de-luxe.png",
     matchScore: 93,
-    tags: ["beauty"],
+    tags: ["beauty", "perfume", "fragrance"],
   },
 ];
 
+// Demo video: third-party test streams (real film content, never test
+// patterns). Replaced by Cloudflare Stream-hosted clips in the next phase.
 const HLS_A = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
-const HLS_B = "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8";
+const HLS_B = "https://test-streams.mux.dev/tos_ismc/main.m3u8";
 
 export const demoVideos: Video[] = [
   {
@@ -54,6 +57,7 @@ export const demoVideos: Video[] = [
     creatorId: "Aisyah",
     caption: "New collection drop is finally here! Which one is your favourite?",
     hlsUrl: HLS_A,
+    posterUrl: "/posters/poster-a.png",
     hashtags: ["ScopieStyle", "NewDrop", "OOTD"],
     productIds: ["p_luxe_bag"],
     stats: { likes: 1200, comments: 128, shares: 76 },
@@ -63,6 +67,7 @@ export const demoVideos: Video[] = [
     creatorId: "Daniel",
     caption: "Morning run, clear mind.",
     hlsUrl: HLS_B,
+    posterUrl: "/posters/poster-b.png",
     hashtags: ["HealthyMind", "MorningRoutine"],
     productIds: ["p_cloud_runner"],
     stats: { likes: 860, comments: 54, shares: 31 },
@@ -72,6 +77,7 @@ export const demoVideos: Video[] = [
     creatorId: "Hana",
     caption: "Clean girl aesthetic — 3 pieces, endless looks ✨",
     hlsUrl: HLS_A,
+    posterUrl: "/posters/poster-a.png",
     hashtags: ["CleanGirl", "Aesthetic"],
     productIds: ["p_elegant_watch"],
     stats: { likes: 2300, comments: 210, shares: 143 },
@@ -81,6 +87,7 @@ export const demoVideos: Video[] = [
     creatorId: "Liyana",
     caption: "Travel essentials for your next getaway 🧳",
     hlsUrl: HLS_B,
+    posterUrl: "/posters/poster-b.png",
     hashtags: ["TravelEssentials"],
     productIds: ["p_eau_de_luxe"],
     stats: { likes: 990, comments: 87, shares: 40 },

@@ -1,5 +1,6 @@
 import { config as loadEnv } from "dotenv";
 import { resolve } from "node:path";
+// Root .env wins; a package-local .env only fills unset variables.
 loadEnv({ path: resolve(__dirname, "../../../.env") });
 loadEnv();
 
@@ -23,6 +24,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 const redisUrl = process.env.REDIS_URL;
 const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL, max: 5 }) : null;
+// An idle-client error (DB restart, pooler recycle) emits 'error' on the
+// Pool; without a listener that is an uncaughtException that kills the worker.
+pool?.on("error", (err) => console.error(`worker pg pool error: ${err.message}`));
 
 if (!redisUrl) {
   console.log("worker: REDIS_URL not set — nothing to do (demo mode). Exiting.");
@@ -85,11 +89,13 @@ const eventsWorker = new Worker(
 eventsWorker.on("failed", (job, err) => {
   console.error(`event job ${job?.id} failed: ${err.message}`);
 });
+eventsWorker.on("error", (err) => {
+  // Redis connection errors surface here; logging keeps the process alive.
+  console.error(`events worker error: ${err.message}`);
+});
 
-// ── payment reconciliation ─────────────────────────────────────────
-// TODO: every 60s, select orders_ref where payment_status='pending' and
-// created_at > now()-'24h', call the API's internal reconcile endpoint (which
-// asks the gateway for authoritative status), and expire stale orders.
-// Mandatory because gateway callbacks are success-only.
+// Payment reconciliation lives in the API process itself
+// (PaymentsService.reconcilePending, 60s loop, armed when DB + gateway are
+// configured) — the gateway adapter and order logic are there.
 
 console.log("Scopie worker running: engagement-events");

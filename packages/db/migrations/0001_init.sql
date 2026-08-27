@@ -134,6 +134,9 @@ create table if not exists orders_ref (
   medusa_order_id text unique,
   buyer_id uuid not null references profiles(id),
   seller_id uuid not null references profiles(id),
+  -- What was bought: the recommender's purchase event joins on product_id.
+  product_id text,
+  quantity int not null default 1 check (quantity > 0),
   amount_sen bigint not null check (amount_sen >= 0),
   currency text not null default 'MYR',
   payment_status text not null default 'pending'

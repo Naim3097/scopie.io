@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { Product, Video } from "@scopie/core";
 import { formatRM } from "@/lib/demo";
+import { MOBILE_HLS_CONFIG, applyLevelCap } from "@/lib/hls-config";
 import { track } from "@/lib/events";
 
 interface Props {
@@ -20,6 +21,8 @@ interface Props {
   onForceMute: () => void;
 }
 
+const compact = new Intl.NumberFormat("en-MY", { notation: "compact" });
+
 /**
  * One feed item. Hard-won rules for real phones — do not relax:
  *
@@ -29,17 +32,26 @@ interface Props {
  *  2. ONE ATTACHED PLAYER AT A TIME. iOS Safari and low-end Android allow
  *     very few concurrent media pipelines; a preloaded neighbour holding a
  *     decoder is exactly why "the next video stays on loading forever".
- *     Media attaches when a card becomes active and is fully released
- *     (hls.destroy + src removal) when it deactivates. Preload-ahead returns
- *     later via a single reused player pool, never via parallel pipelines.
- *  3. NO INFINITE SPINNER. A stall watchdog retries play, then rebuilds the
- *     attachment from scratch, then surfaces tap-to-play.
+ *  3. NO DEAD ENDS. The stall watchdog never disarms: it detects stalls by
+ *     playback POSITION (not readyState, so slow-but-progressing networks
+ *     aren't punished), resumes from the same position after a re-attach,
+ *     pauses its ladder while tap-to-play is showing, and re-arms after
+ *     every tap. A failed hls.js chunk load (deploy skew) surfaces
+ *     tap-to-play instead of an unhandled rejection.
  *  4. Unmuting happens synchronously inside the tap gesture (el.muted +
  *     play()) — mobile browsers only allow audible playback from a gesture.
  *  5. Watch time counts the element's own playing/pause events and flushes
  *     on deactivate AND unmount.
  */
-export function VideoCard({ video, product, active, near: _near, muted, onToggleMute, onForceMute }: Props) {
+export const VideoCard = memo(function VideoCard({
+  video,
+  product,
+  active,
+  near: _near,
+  muted,
+  onToggleMute,
+  onForceMute,
+}: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<{ destroy: () => void } | null>(null);
   const activeRef = useRef(active);
@@ -47,15 +59,23 @@ export function VideoCard({ video, product, active, near: _near, muted, onToggle
   const forceMuteRef = useRef(onForceMute);
   const playStartRef = useRef<number | null>(null);
   const watchAccumRef = useRef(0);
+  /** Watchdog state: escalation counter + last observed playback position. */
+  const attemptsRef = useRef(0);
+  const lastPosRef = useRef(-1);
+  /** Position to resume from after a recovery re-attach. */
+  const resumePosRef = useRef(0);
   const [liked, setLiked] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
   const [buffering, setBuffering] = useState(false);
-  /** Bumping this forces a clean re-attach (watchdog recovery path). */
+  /** Bumping this forces a clean re-attach (recovery path). */
   const [epoch, setEpoch] = useState(0);
+  /** needsTap mirrored into a ref so the watchdog reads fresh state. */
+  const needsTapRef = useRef(needsTap);
 
   activeRef.current = active;
   mutedRef.current = muted;
   forceMuteRef.current = onForceMute;
+  needsTapRef.current = needsTap;
 
   /** Identity-stable: reads everything through refs. */
   const attemptPlay = useCallback(() => {
@@ -100,42 +120,56 @@ export function VideoCard({ video, product, active, near: _near, muted, onToggle
     const el = videoRef.current;
     if (!el || !active) return;
     let cancelled = false;
+    const resumeAt = resumePosRef.current;
+    resumePosRef.current = 0;
 
     const canNative = el.canPlayType("application/vnd.apple.mpegurl") !== "";
     if (canNative) {
       el.src = video.hlsUrl;
+      const onLoadedMeta = () => {
+        if (resumeAt > 0 && Number.isFinite(el.duration) && resumeAt < el.duration) {
+          el.currentTime = resumeAt;
+        }
+      };
       const onCanPlay = () => attemptPlay();
+      el.addEventListener("loadedmetadata", onLoadedMeta);
       el.addEventListener("canplay", onCanPlay);
       el.load();
       return () => {
+        el.removeEventListener("loadedmetadata", onLoadedMeta);
         el.removeEventListener("canplay", onCanPlay);
         el.removeAttribute("src");
         el.load(); // releases the decoder for the next card
       };
     }
 
-    void import("hls.js").then(({ default: Hls }) => {
-      if (cancelled || !Hls.isSupported()) return;
-      const hls = new Hls({
-        // Fast first frame on mobile data: start at the lowest rung and let
-        // ABR climb; keep buffers small — the user swipes in seconds.
-        startLevel: 0,
-        maxBufferLength: 10,
-        backBufferLength: 10,
-        capLevelToPlayerSize: true,
+    import("hls.js")
+      .then(({ default: Hls }) => {
+        if (cancelled || !Hls.isSupported()) return;
+        const hls = new Hls({ ...MOBILE_HLS_CONFIG, startPosition: resumeAt > 0 ? resumeAt : -1 });
+        hls.loadSource(video.hlsUrl);
+        hls.attachMedia(el);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          applyLevelCap(hls); // real 720p cap — capLevelToPlayerSize alone over-selects on portrait
+          attemptPlay();
+        });
+        // hls.js does not self-recover from fatal errors on its own.
+        hls.on(Hls.Events.ERROR, (_evt, data) => {
+          if (!data.fatal) return;
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
+          else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+          else setNeedsTap(true);
+        });
+        hlsRef.current = hls;
+      })
+      .catch(() => {
+        // Chunk load failed (deploy skew / flaky network): recoverable UI,
+        // never an unhandled rejection with a spinner behind it.
+        if (!cancelled) {
+          setBuffering(false);
+          setNeedsTap(true);
+        }
       });
-      hls.loadSource(video.hlsUrl);
-      hls.attachMedia(el);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => attemptPlay());
-      // hls.js does not self-recover from fatal errors on its own.
-      hls.on(Hls.Events.ERROR, (_evt, data) => {
-        if (!data.fatal) return;
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
-        else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
-        else setNeedsTap(true);
-      });
-      hlsRef.current = hls;
-    });
     return () => {
       cancelled = true;
       hlsRef.current?.destroy();
@@ -145,32 +179,56 @@ export function VideoCard({ video, product, active, near: _near, muted, onToggle
     };
   }, [active, epoch, video.hlsUrl, attemptPlay]);
 
-  // Stall watchdog: an active card must reach 'playing'. Escalate:
-  // retry play → clean re-attach → tap-to-play. Never an infinite spinner.
+  // Stall watchdog — always armed while active. Escalation ladder per stalled
+  // tick (3s): retry play → re-attach at the same position → tap-to-play.
+  // The ladder pauses (not disarms) while hidden or while tap-to-play shows,
+  // and resets whenever playback position advances.
   useEffect(() => {
     if (!active) return;
-    let attempts = 0;
+    attemptsRef.current = 0;
+    lastPosRef.current = -1;
     const timer = setInterval(() => {
       const el = videoRef.current;
-      // A hidden page legitimately pauses media — don't fight the browser.
-      if (!el || document.visibilityState === "hidden") return;
-      if (!el.paused && el.readyState >= 3) {
-        attempts = 0;
+      if (!el) return;
+      if (document.visibilityState === "hidden") {
+        attemptsRef.current = 0; // OS pauses are not stalls
         return;
       }
-      attempts += 1;
-      if (attempts === 1) {
+      if (needsTapRef.current) return; // blocked, not stalled — wait for the tap
+      const progressed = !el.paused && el.currentTime > lastPosRef.current + 0.1;
+      lastPosRef.current = el.currentTime;
+      if (progressed) {
+        attemptsRef.current = 0;
+        return;
+      }
+      attemptsRef.current += 1;
+      if (attemptsRef.current === 1) {
         attemptPlay();
-      } else if (attempts === 2) {
+      } else if (attemptsRef.current === 2) {
+        resumePosRef.current = el.currentTime;
         setEpoch((e) => e + 1);
       } else {
-        clearInterval(timer);
+        attemptsRef.current = 0; // tap re-enters the ladder from the top
         setBuffering(false);
         setNeedsTap(true);
       }
     }, 3000);
     return () => clearInterval(timer);
   }, [active, attemptPlay]);
+
+  // Resume promptly when the app returns to the foreground — iOS does not
+  // auto-resume after screen lock, and waiting for the next watchdog tick
+  // leaves up to 3s of frozen frame.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && activeRef.current) {
+        attemptsRef.current = 0;
+        attemptPlay();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [attemptPlay]);
 
   // Watch-time + buffering state ride the element's own events.
   useEffect(() => {
@@ -233,7 +291,8 @@ export function VideoCard({ video, product, active, near: _near, muted, onToggle
   };
 
   const tapToPlay = () => {
-    setNeedsTap(false);
+    setNeedsTap(false); // watchdog re-arms automatically (ladder reads this)
+    attemptsRef.current = 0;
     const el = videoRef.current;
     if (el && (el.currentSrc || el.src)) {
       attemptPlay(); // in-gesture play on the attached source
@@ -247,6 +306,8 @@ export function VideoCard({ video, product, active, near: _near, muted, onToggle
     setLiked((v) => !v);
     track({ type: liked ? "video.unlike" : "video.like", subjectId: video.id, surface: "feed" });
   };
+
+  const likeCount = (video.stats.likes ?? 0) + (liked ? 1 : 0);
 
   return (
     <section className="feed-item" aria-label={`Video by ${video.creatorId}`}>
@@ -279,28 +340,43 @@ export function VideoCard({ video, product, active, near: _near, muted, onToggle
         <div className="feed-tags">{video.hashtags.map((t) => `#${t}`).join(" ")}</div>
       </div>
       <div className="feed-actions">
-        <button className={`feed-action${liked ? " liked" : ""}`} onClick={like} aria-pressed={liked}>
-          <span className="icon">♥</span>
-          {(video.stats.likes ?? 0) + (liked ? 1 : 0)}
+        <button
+          className={`feed-action${liked ? " liked" : ""}`}
+          onClick={like}
+          aria-pressed={liked}
+          aria-label={`Like, ${likeCount} likes`}
+        >
+          <span className="icon" aria-hidden="true">
+            ♥
+          </span>
+          {compact.format(likeCount)}
         </button>
         <button
           className="feed-action"
           onClick={() => track({ type: "video.comment", subjectId: video.id, surface: "feed" })}
+          aria-label={`Comments, ${video.stats.comments ?? 0}`}
         >
-          <span className="icon">💬</span>
-          {video.stats.comments ?? 0}
+          <span className="icon" aria-hidden="true">
+            💬
+          </span>
+          {compact.format(video.stats.comments ?? 0)}
         </button>
         <button
           className="feed-action"
           onClick={() => track({ type: "video.share", subjectId: video.id, surface: "feed" })}
+          aria-label={`Share, ${video.stats.shares ?? 0}`}
         >
-          <span className="icon">↗</span>
-          {video.stats.shares ?? 0}
+          <span className="icon" aria-hidden="true">
+            ↗
+          </span>
+          {compact.format(video.stats.shares ?? 0)}
         </button>
         <button className="feed-action" onClick={toggleMute} aria-label={muted ? "Unmute" : "Mute"}>
-          <span className="icon">{muted ? "🔇" : "🔊"}</span>
+          <span className="icon" aria-hidden="true">
+            {muted ? "🔇" : "🔊"}
+          </span>
         </button>
       </div>
     </section>
   );
-}
+});

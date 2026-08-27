@@ -10,9 +10,10 @@ interface Props {
 }
 
 /**
- * Preload window: active ± 1. More sounds nice but multiple HLS instances
- * buffering concurrently on mobile data starve the ACTIVE card — the "stale
- * screen for a few seconds" failure mode.
+ * Neighbour hint (reserved). Media NEVER attaches to non-active cards —
+ * see VideoCard rule 2 (one pipeline at a time; parallel pipelines starve
+ * budget-phone decoders). Preload-ahead will return via a single reused
+ * player pool, not by widening this window.
  */
 const NEAR = 1;
 
@@ -25,6 +26,13 @@ export function VideoFeed({ videos, products }: Props) {
   // a fresh identity per render would tear the players down mid-scroll.
   const handleToggleMute = useCallback(() => setMuted((m) => !m), []);
   const handleForceMute = useCallback(() => setMuted(true), []);
+
+  // Warm the hls.js chunk while the first card is still rendering, so the
+  // download/parse (~188KB gzip, ~1s parse on budget CPUs) overlaps the
+  // route paint instead of serializing after it.
+  useEffect(() => {
+    void import("hls.js").catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;

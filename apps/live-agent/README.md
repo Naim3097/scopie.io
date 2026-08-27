@@ -1,5 +1,10 @@
 # Scopie Live agent
 
+> **Status: scaffold.** The entrypoint intentionally raises
+> `NotImplementedError` once `LIVEKIT_URL` is set — the AgentSession wiring
+> is the next-phase task. Provider keys listed below are what it WILL
+> require once wired; nothing reads them yet.
+
 Python worker (LiveKit Agents) that runs the AI host: consumes viewer chat,
 answers selected questions, and drives the photoreal avatar into the live room.
 
