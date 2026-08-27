@@ -6,6 +6,8 @@ import type { LiveRoom } from "@scopie/core";
 import { apiGet } from "@/lib/api";
 import { demoRooms } from "@/lib/demo";
 
+const THUMBS = ["/posters/poster-a.png", "/posters/poster-b.png"];
+
 export default function LiveListPage() {
   const [rooms, setRooms] = useState<LiveRoom[]>([]);
 
@@ -15,19 +17,33 @@ export default function LiveListPage() {
 
   return (
     <main className="page page--pad">
-      <h1 className="page-title">Live now</h1>
+      <div className="sec-label" style={{ marginTop: 14 }}>
+        LIVE SHOPPING
+      </div>
+      <h1 className="page-title" style={{ marginTop: 2 }}>
+        Live now
+      </h1>
       <p className="page-sub">Shop together, in real time.</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {rooms.map((room) => (
-          <Link key={room.id} href={`/live/${room.id}`} className="card" style={{ padding: "14px 16px" }}>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
-              <span className="live-badge">● LIVE</span>
-              {room.hostType === "ai" && <span className="ai-badge">✦ AI Host</span>}
-            </div>
-            <div style={{ fontWeight: 600 }}>{room.title}</div>
-            <div style={{ color: "var(--muted)", fontSize: 13 }}>
-              {Intl.NumberFormat("en-MY", { notation: "compact" }).format(room.viewerCount)} watching
-            </div>
+        {rooms.map((room, i) => (
+          <Link key={room.id} href={`/live/${room.id}`} className="live-tile">
+            <span className="live-thumb">
+              <img src={THUMBS[i % THUMBS.length]} alt="" />
+              <span className="live-badge live-badge--sm">
+                <span aria-hidden="true">●</span> LIVE
+              </span>
+            </span>
+            <span className="grow">
+              <b>{room.title}</b>
+              {room.hostType === "ai" && (
+                <span className="ai-badge" style={{ marginBottom: 4 }}>
+                  <span aria-hidden="true">✦</span> AI Host
+                </span>
+              )}
+              <span className="sub" style={{ display: "block" }}>
+                {Intl.NumberFormat("en-MY", { notation: "compact" }).format(room.viewerCount)} watching
+              </span>
+            </span>
           </Link>
         ))}
       </div>

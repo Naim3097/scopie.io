@@ -5,7 +5,19 @@
  * platform-dependent OS emoji.
  */
 
-const PATHS: Record<string, React.ReactNode> = {
+export const PATHS: Record<string, React.ReactNode> = {
+  home: (
+    <>
+      <path d="M4.5 11.1 12 4.9l7.5 6.2" />
+      <path d="M6.4 10.4v8a1.2 1.2 0 0 0 1.2 1.2h8.8a1.2 1.2 0 0 0 1.2-1.2v-8" />
+    </>
+  ),
+  discover: (
+    <>
+      <circle cx="11" cy="11" r="6.3" />
+      <path d="m15.7 15.7 4 4" />
+    </>
+  ),
   check: <path d="M5.5 12.5l4.2 4.2L18.5 7.5" />,
   cross: <path d="M7 7l10 10M17 7L7 17" />,
   clock: (
@@ -45,6 +57,7 @@ const PATHS: Record<string, React.ReactNode> = {
     </>
   ),
   smile: <path d="M6.5 12.5c2.4 4 8.6 4 11 0" strokeWidth="2.4" />,
+  spark: <path d="M12 3.5 13.9 10 20.5 12 13.9 14 12 20.5 10.1 14 3.5 12 10.1 10z" fill="currentColor" stroke="none" />,
   heart: (
     <path d="M12 19.2C7.4 16 4.6 13.1 4.6 10a3.8 3.8 0 0 1 6.8-2.3l.6.8.6-.8A3.8 3.8 0 0 1 19.4 10c0 3.1-2.8 6-7.4 9.2Z" />
   ),

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { Product } from "@scopie/core";
-import { Hero } from "@/components/Glyph";
 import { formatRM } from "@/lib/demo";
 import { useSession } from "@/lib/session";
 import {
@@ -78,10 +77,10 @@ export default function SellPage() {
   if (!seller) {
     return (
       <main className="page page--pad">
-        <div className="sell-hero">
-          <Hero kind="bag" />
-          <h1 className="page-title">Start selling on Scopie</h1>
-          <p className="page-sub">Open your shop in seconds. List products, go live, and get paid in RM.</p>
+        <div className="hero-banner" style={{ marginTop: 16 }}>
+          <div className="sec-label">SELLER CENTRE</div>
+          <h1>Commerce, reimagined.</h1>
+          <p>Open your shop in seconds. List products, go live, and get paid in RM.</p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 400 }}>
           <input

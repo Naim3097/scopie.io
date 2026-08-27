@@ -53,7 +53,10 @@ export default function FeedPage() {
   }, []);
 
   return (
-    <main className="page page--feed">
+    <main className="page page--feed" style={{ position: "relative" }}>
+      <span className="feed-brand" aria-hidden="true">
+        scopie
+      </span>
       {videos.length > 0 ? (
         <VideoFeed videos={videos} products={products} />
       ) : (

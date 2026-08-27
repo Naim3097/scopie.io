@@ -65,12 +65,18 @@ export default function ProfilePage() {
 
   return (
     <main className="page page--pad">
-      <h1 className="page-title">
+      <div className="sec-label" style={{ marginTop: 14 }}>
+        DIGITAL IDENTITY
+      </div>
+      <h1 className="page-title" style={{ marginTop: 2 }}>
         Hi, I&rsquo;m <span className="brand-name">{isDemoIdentity ? "Zara" : displayName}</span>
       </h1>
       <p className="page-sub">This is your digital identity, powered by Scopie.</p>
 
       <div className="idcard">
+        <div className="avatar-orb" aria-hidden="true">
+          {(isDemoIdentity ? "Z" : displayName.charAt(0).toUpperCase()) || "S"}
+        </div>
         <div className="verified">{isDemoIdentity ? "◌ GUEST PREVIEW" : "✓ SIGNED IN"}</div>
         <h2>{isDemoIdentity ? "Zara Tan" : displayName}</h2>
         <div className="scopid">

@@ -75,8 +75,15 @@ export function ProductCard({ product }: { product: Product }) {
         <div className="card-title">{product.title}</div>
         {product.variant && <div className="card-variant">{product.variant}</div>}
         <div className="card-price">{formatRM(product.priceSen)}</div>
-        <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={() => void buy()} disabled={busy}>
-          {busy ? "Opening checkout…" : "Buy with Scopie Pay"}
+        {/* short label — "Buy with Scopie Pay" wraps to two lines on half-width
+            cards; the Scopie Pay branding lives on the checkout sheet itself */}
+        <button
+          className="btn btn-primary"
+          style={{ marginTop: 10, padding: "11px 16px", fontSize: 14, whiteSpace: "nowrap" }}
+          onClick={() => void buy()}
+          disabled={busy}
+        >
+          {busy ? "Opening…" : "Buy now"}
         </button>
         {error && (
           <div style={{ color: "var(--live-ink)", fontSize: 12.5, marginTop: 6 }} role="alert">

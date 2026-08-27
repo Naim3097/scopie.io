@@ -36,6 +36,19 @@ export default function ShopPage() {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const autoAskedRef = useRef(false);
+
+  // Arriving from the discover AI-suggest card (?q=): the promise "I found
+  // something for you" must carry over — ask it here automatically.
+  useEffect(() => {
+    if (autoAskedRef.current) return;
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q?.trim()) {
+      autoAskedRef.current = true;
+      void send(q.trim());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // New turns must be visible — without this, replies + product grids land
   // below the fold and tapping Ask appears to do nothing.
@@ -44,10 +57,12 @@ export default function ShopPage() {
     endRef.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "end" });
   }, [thread.length]);
 
-  const send = async () => {
-    const text = draft.trim();
+  const send = async (given?: string) => {
+    const text = (given ?? draft).trim();
     if (!text || busy) return;
-    setDraft("");
+    // Only clear the input when sending ITS contents — a starter chip must
+    // not wipe a draft the user typed but hasn't sent.
+    if (given === undefined) setDraft("");
     setBusy(true);
     setThread((t) => [...t, { role: "user", text }]);
     const found = demoSearch(text);
@@ -66,9 +81,14 @@ export default function ShopPage() {
     setBusy(false);
   };
 
+  const starters = ["A tote bag for work", "White sneakers", "A watch under RM500", "A new perfume"];
+
   return (
     <main className="page page--pad">
-      <h1 className="page-title">
+      <div className="sec-label" style={{ marginTop: 14 }}>
+        AI PERSONAL SHOPPER
+      </div>
+      <h1 className="page-title" style={{ marginTop: 2 }}>
         Hi, I&rsquo;m <span className="brand-name">Scopie</span>
       </h1>
       <p className="page-sub">Your AI Personal Shopper. I&rsquo;ll find the best for you.</p>
@@ -76,7 +96,16 @@ export default function ShopPage() {
       <div className="thread" aria-live="polite">
         {thread.map((turn, i) => (
           <div key={i} style={{ display: "contents" }}>
-            <div className={`bubble ${turn.role === "user" ? "bubble-user" : "bubble-ai"}`}>{turn.text}</div>
+            {turn.role === "ai" ? (
+              <div style={{ display: "flex", gap: 9, alignItems: "flex-end" }}>
+                <span className="ai-orb ai-orb--sm" aria-hidden="true">
+                  ✦
+                </span>
+                <div className="bubble bubble-ai">{turn.text}</div>
+              </div>
+            ) : (
+              <div className="bubble bubble-user">{turn.text}</div>
+            )}
             {turn.products && turn.products.length > 0 && (
               <div className="bubble-products">
                 {turn.products.slice(0, 4).map((p) => (
@@ -89,6 +118,16 @@ export default function ShopPage() {
         {/* scroll-margin keeps the newest reply clear of the floating dock */}
         <div ref={endRef} style={{ scrollMarginBottom: "calc(var(--nav-clear) + 16px)" }} />
       </div>
+
+      {thread.length === 1 && (
+        <div className="chips" role="group" aria-label="Suggestions">
+          {starters.map((s) => (
+            <button key={s} className="chip" onClick={() => void send(s)}>
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="chatrow">
         {/* Input stays enabled while busy: disabling a focused input closes
