@@ -9,7 +9,10 @@ interface Props {
   video: Video;
   product?: Product;
   active: boolean;
-  /** Mounted window: only cards near the active index attach media. */
+  /**
+   * Reserved: neighbour hint for a future single-player preload pool.
+   * Media is deliberately NOT attached to non-active cards — see rule 2.
+   */
   near: boolean;
   muted: boolean;
   onToggleMute: () => void;
@@ -21,20 +24,22 @@ interface Props {
  * One feed item. Hard-won rules for real phones — do not relax:
  *
  *  1. STABLE EFFECTS. Every callback the media effects depend on is identity-
- *     stable (props go through refs). If the HLS attach effect re-runs on a
- *     parent re-render, the player is destroyed mid-scroll and the card goes
- *     black with a dead play button — the exact bug this design fixes.
- *  2. Play only after a source is attached (hls MANIFEST_PARSED / native
- *     canplay); a rejected play() shows the tap-to-play control ONLY for
- *     NotAllowedError (genuinely blocked). NotSupportedError/AbortError mean
- *     "source not ready yet" — the attach events will retry.
- *  3. Unmuting happens synchronously inside the tap gesture (el.muted +
- *     play()), never via a state round-trip — mobile browsers only allow
- *     audible playback from a user gesture.
- *  4. Watch time counts the element's own playing/pause events and flushes
+ *     stable (props go through refs). If the attach effect re-runs on a parent
+ *     re-render, the player is destroyed mid-scroll and the card goes black.
+ *  2. ONE ATTACHED PLAYER AT A TIME. iOS Safari and low-end Android allow
+ *     very few concurrent media pipelines; a preloaded neighbour holding a
+ *     decoder is exactly why "the next video stays on loading forever".
+ *     Media attaches when a card becomes active and is fully released
+ *     (hls.destroy + src removal) when it deactivates. Preload-ahead returns
+ *     later via a single reused player pool, never via parallel pipelines.
+ *  3. NO INFINITE SPINNER. A stall watchdog retries play, then rebuilds the
+ *     attachment from scratch, then surfaces tap-to-play.
+ *  4. Unmuting happens synchronously inside the tap gesture (el.muted +
+ *     play()) — mobile browsers only allow audible playback from a gesture.
+ *  5. Watch time counts the element's own playing/pause events and flushes
  *     on deactivate AND unmount.
  */
-export function VideoCard({ video, product, active, near, muted, onToggleMute, onForceMute }: Props) {
+export function VideoCard({ video, product, active, near: _near, muted, onToggleMute, onForceMute }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<{ destroy: () => void } | null>(null);
   const activeRef = useRef(active);
@@ -45,6 +50,8 @@ export function VideoCard({ video, product, active, near, muted, onToggleMute, o
   const [liked, setLiked] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
   const [buffering, setBuffering] = useState(false);
+  /** Bumping this forces a clean re-attach (watchdog recovery path). */
+  const [epoch, setEpoch] = useState(0);
 
   activeRef.current = active;
   mutedRef.current = muted;
@@ -88,10 +95,10 @@ export function VideoCard({ video, product, active, near, muted, onToggleMute, o
     }
   }, [video.id]);
 
-  // Attach / detach the stream based on the mounted window ONLY.
+  // Attach media for the ACTIVE card only; release the pipeline on deactivate.
   useEffect(() => {
     const el = videoRef.current;
-    if (!el || !near) return;
+    if (!el || !active) return;
     let cancelled = false;
 
     const canNative = el.canPlayType("application/vnd.apple.mpegurl") !== "";
@@ -99,10 +106,11 @@ export function VideoCard({ video, product, active, near, muted, onToggleMute, o
       el.src = video.hlsUrl;
       const onCanPlay = () => attemptPlay();
       el.addEventListener("canplay", onCanPlay);
+      el.load();
       return () => {
         el.removeEventListener("canplay", onCanPlay);
         el.removeAttribute("src");
-        el.load();
+        el.load(); // releases the decoder for the next card
       };
     }
 
@@ -119,8 +127,7 @@ export function VideoCard({ video, product, active, near, muted, onToggleMute, o
       hls.loadSource(video.hlsUrl);
       hls.attachMedia(el);
       hls.on(Hls.Events.MANIFEST_PARSED, () => attemptPlay());
-      // hls.js does not self-recover from fatal errors; without this, one
-      // dropped segment on mobile data freezes the card forever.
+      // hls.js does not self-recover from fatal errors on its own.
       hls.on(Hls.Events.ERROR, (_evt, data) => {
         if (!data.fatal) return;
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
@@ -136,7 +143,34 @@ export function VideoCard({ video, product, active, near, muted, onToggleMute, o
       el.removeAttribute("src");
       el.load();
     };
-  }, [near, video.hlsUrl, attemptPlay]);
+  }, [active, epoch, video.hlsUrl, attemptPlay]);
+
+  // Stall watchdog: an active card must reach 'playing'. Escalate:
+  // retry play → clean re-attach → tap-to-play. Never an infinite spinner.
+  useEffect(() => {
+    if (!active) return;
+    let attempts = 0;
+    const timer = setInterval(() => {
+      const el = videoRef.current;
+      // A hidden page legitimately pauses media — don't fight the browser.
+      if (!el || document.visibilityState === "hidden") return;
+      if (!el.paused && el.readyState >= 3) {
+        attempts = 0;
+        return;
+      }
+      attempts += 1;
+      if (attempts === 1) {
+        attemptPlay();
+      } else if (attempts === 2) {
+        setEpoch((e) => e + 1);
+      } else {
+        clearInterval(timer);
+        setBuffering(false);
+        setNeedsTap(true);
+      }
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [active, attemptPlay]);
 
   // Watch-time + buffering state ride the element's own events.
   useEffect(() => {
@@ -200,7 +234,13 @@ export function VideoCard({ video, product, active, near, muted, onToggleMute, o
 
   const tapToPlay = () => {
     setNeedsTap(false);
-    attemptPlay();
+    const el = videoRef.current;
+    if (el && (el.currentSrc || el.src)) {
+      attemptPlay(); // in-gesture play on the attached source
+    } else {
+      setBuffering(true);
+      setEpoch((e) => e + 1); // source was lost — rebuild the attachment
+    }
   };
 
   const like = () => {
