@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Hero } from "@/components/Glyph";
 import { AUTH_ENABLED, supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
 
@@ -48,7 +49,7 @@ function AuthInner() {
   if (!AUTH_ENABLED) {
     return (
       <main className="page page--pad" style={{ textAlign: "center", paddingTop: 80 }}>
-        <div style={{ fontSize: 48 }}>👋</div>
+        <Hero kind="smile" />
         <h1 className="page-title">You&rsquo;re browsing as a guest</h1>
         <p className="page-sub">
           Accounts open with the full launch — everything works in guest mode for now, and your activity stays on
@@ -103,7 +104,7 @@ function AuthInner() {
   return (
     <main className="page page--pad">
       <h1 className="page-title">
-        Sign in to <span style={{ color: "var(--cyan)" }}>Scopie</span>
+        Sign in to <span className="brand-name">Scopie</span>
       </h1>
       <p className="page-sub">
         {step === "email"
@@ -161,7 +162,7 @@ function AuthInner() {
       )}
 
       {error && (
-        <p role="alert" style={{ color: "var(--live)", fontSize: 14, marginTop: 12 }}>
+        <p role="alert" style={{ color: "var(--live-ink)", fontSize: 14, marginTop: 12 }}>
           {error}
         </p>
       )}

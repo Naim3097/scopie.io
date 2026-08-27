@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Product } from "@scopie/core";
+import { Brand } from "@/components/Brand";
 import { ProductCard } from "@/components/ProductCard";
 import { apiGet, DEMO_MODE } from "@/lib/api";
 import { demoProducts } from "@/lib/demo";
@@ -20,10 +21,7 @@ export default function DiscoverPage() {
   return (
     <main className="page page--pad">
       <div className="topbar" style={{ padding: 0 }}>
-        <span className="brand">
-          <span className="b-cyan">scop</span>
-          <span className="b-orange">ie</span>
-        </span>
+        <Brand />
       </div>
       <h1 className="page-title">Discover what&rsquo;s next, just for you.</h1>
       <p className="page-sub">Scopie AI scans trends, understands your style, and finds what you&rsquo;ll love.</p>

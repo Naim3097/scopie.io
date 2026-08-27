@@ -9,6 +9,7 @@ import { getAuthHeaders } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
 import { getSeller, listSellerProducts, type SellerProfile } from "@/lib/seller";
 import { connectPublisher, type LiveConnection } from "@/lib/live";
+import { Hero } from "@/components/Glyph";
 import { formatRM } from "@/lib/demo";
 
 type StudioStage = "loading" | "no_shop" | "preview" | "starting" | "live" | "ended" | "error";
@@ -298,7 +299,7 @@ export default function StudioPage() {
   if (stage === "no_shop") {
     return (
       <main className="page page--pad" style={{ textAlign: "center", paddingTop: 80 }}>
-        <div style={{ fontSize: 48 }}>🎥</div>
+        <Hero kind="camera" />
         <h1 className="page-title">Live Studio is for sellers</h1>
         <p className="page-sub">Open your shop first, then come back to go live and sell in real time.</p>
         <Link href="/sell" className="btn btn-primary" style={{ width: "auto" }}>
@@ -311,7 +312,7 @@ export default function StudioPage() {
   if (stage === "ended") {
     return (
       <main className="page page--pad" style={{ textAlign: "center", paddingTop: 80 }}>
-        <div style={{ fontSize: 48 }}>👏</div>
+        <Hero kind="smile" tone="good" />
         <h1 className="page-title">Stream ended</h1>
         <p className="page-sub">Nice show{seller ? `, ${seller.shopName}` : ""}. Your products stay in the catalog.</p>
         <Link href="/sell" className="btn btn-primary" style={{ width: "auto" }}>
@@ -398,13 +399,13 @@ export default function StudioPage() {
               </button>
             ))}
           </div>
-          <button className="btn btn-ghost" style={{ marginTop: 14, color: "var(--live)" }} onClick={() => void endStream()}>
+          <button className="btn btn-ghost" style={{ marginTop: 14, color: "var(--live-ink)" }} onClick={() => void endStream()}>
             End stream
           </button>
         </div>
       )}
       {error && (
-        <p role="alert" style={{ color: "var(--live)", fontSize: 14, marginTop: 10 }}>
+        <p role="alert" style={{ color: "var(--live-ink)", fontSize: 14, marginTop: 10 }}>
           {error}
         </p>
       )}

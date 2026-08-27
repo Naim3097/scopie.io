@@ -3,13 +3,47 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+/** Soft stroke icons — the brand's icon language is a 1.8px rounded line. */
+const ICONS: Record<string, React.ReactNode> = {
+  home: (
+    <>
+      <path d="M4.5 11.1 12 4.9l7.5 6.2" />
+      <path d="M6.4 10.4v8a1.2 1.2 0 0 0 1.2 1.2h8.8a1.2 1.2 0 0 0 1.2-1.2v-8" />
+    </>
+  ),
+  discover: (
+    <>
+      <circle cx="11" cy="11" r="6.3" />
+      <path d="m15.7 15.7 4 4" />
+    </>
+  ),
+  live: (
+    <>
+      <rect x="3.6" y="5.6" width="16.8" height="12.8" rx="3.2" />
+      <path d="M10.6 9.6v4.8l4.1-2.4z" fill="currentColor" stroke="none" />
+    </>
+  ),
+  shop: (
+    <>
+      <path d="M6.6 8.4h10.8l.9 10a1.3 1.3 0 0 1-1.3 1.4H7a1.3 1.3 0 0 1-1.3-1.4l.9-10Z" />
+      <path d="M9.1 8.4V7.1a2.9 2.9 0 0 1 5.8 0v1.3" />
+    </>
+  ),
+  profile: (
+    <>
+      <circle cx="12" cy="8.3" r="3.7" />
+      <path d="M5.4 19.5c.8-3.1 3.5-4.8 6.6-4.8s5.8 1.7 6.6 4.8" />
+    </>
+  ),
+};
+
 const TABS = [
-  { href: "/feed", label: "Home", icon: "M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1v-7.5Z" },
-  { href: "/discover", label: "Discover", icon: "M11 4a7 7 0 1 0 4.6 12.3l3.5 3.5 1.4-1.4-3.5-3.5A7 7 0 0 0 11 4Zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z" },
+  { href: "/feed", label: "Home", icon: "home" },
+  { href: "/discover", label: "Discover", icon: "discover" },
   { href: "/create", label: "Create", icon: "", isCreate: true },
-  { href: "/live", label: "Live", icon: "M5 6h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm5 3.5v5l4.5-2.5L10 9.5Z" },
-  { href: "/shop", label: "To Shop", icon: "M7 8V7a5 5 0 0 1 10 0v1h2.2l.8 11.2a1 1 0 0 1-1 1.1H5a1 1 0 0 1-1-1.1L4.8 8H7Zm2 0h6V7a3 3 0 1 0-6 0v1Z" },
-  { href: "/profile", label: "Profile", icon: "M12 4a4.2 4.2 0 1 1 0 8.4A4.2 4.2 0 0 1 12 4Zm0 10c3.9 0 7 2 7 4.6V20H5v-1.4C5 16 8.1 14 12 14Z" },
+  { href: "/live", label: "Live", icon: "live" },
+  { href: "/shop", label: "Shop", icon: "shop" },
+  { href: "/profile", label: "Profile", icon: "profile" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -18,24 +52,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <>
       {children}
       <nav className="bottomnav" aria-label="Main">
-        <div className="bottomnav-in bottomnav-6">
+        <div className="bottomnav-in">
           {TABS.map((tab) => {
             const active = pathname?.startsWith(tab.href);
             if (tab.isCreate) {
               return (
                 <Link key={tab.href} href={tab.href} className="navitem nav-create" aria-label="Create">
                   <span className="nav-create-btn" aria-hidden="true">
-                    +
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                      <path d="M12 5.5v13M5.5 12h13" />
+                    </svg>
                   </span>
                 </Link>
               );
             }
             return (
-              <Link key={tab.href} href={tab.href} className={`navitem${active ? " active" : ""}`}>
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d={tab.icon} />
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`navitem${active ? " active" : ""}`}
+                aria-label={tab.label}
+                aria-current={active ? "page" : undefined}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  {ICONS[tab.icon]}
                 </svg>
-                {tab.label}
+                <span className="nav-label">{tab.label}</span>
               </Link>
             );
           })}

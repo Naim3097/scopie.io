@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { Product, Video } from "@scopie/core";
+import { StrokeIcon } from "@/components/Glyph";
 import { formatRM } from "@/lib/demo";
 import { MOBILE_HLS_CONFIG, applyLevelCap } from "@/lib/hls-config";
 import { track } from "@/lib/events";
@@ -347,7 +348,7 @@ export const VideoCard = memo(function VideoCard({
           aria-label={`Like, ${likeCount} likes`}
         >
           <span className="icon" aria-hidden="true">
-            ♥
+            <StrokeIcon kind="heart" size={22} />
           </span>
           {compact.format(likeCount)}
         </button>
@@ -357,7 +358,7 @@ export const VideoCard = memo(function VideoCard({
           aria-label={`Comments, ${video.stats.comments ?? 0}`}
         >
           <span className="icon" aria-hidden="true">
-            💬
+            <StrokeIcon kind="comment" size={22} />
           </span>
           {compact.format(video.stats.comments ?? 0)}
         </button>
@@ -367,13 +368,13 @@ export const VideoCard = memo(function VideoCard({
           aria-label={`Share, ${video.stats.shares ?? 0}`}
         >
           <span className="icon" aria-hidden="true">
-            ↗
+            <StrokeIcon kind="share" size={22} />
           </span>
           {compact.format(video.stats.shares ?? 0)}
         </button>
         <button className="feed-action" onClick={toggleMute} aria-label={muted ? "Unmute" : "Mute"}>
           <span className="icon" aria-hidden="true">
-            {muted ? "🔇" : "🔊"}
+            <StrokeIcon kind={muted ? "sound-off" : "sound-on"} size={22} />
           </span>
         </button>
       </div>

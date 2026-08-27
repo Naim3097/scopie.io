@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { Product } from "@scopie/core";
+import { Hero } from "@/components/Glyph";
 import { formatRM } from "@/lib/demo";
 import { useSession } from "@/lib/session";
 import {
@@ -78,7 +79,7 @@ export default function SellPage() {
     return (
       <main className="page page--pad">
         <div className="sell-hero">
-          <div style={{ fontSize: 40 }}>🛒</div>
+          <Hero kind="bag" />
           <h1 className="page-title">Start selling on Scopie</h1>
           <p className="page-sub">Open your shop in seconds. List products, go live, and get paid in RM.</p>
         </div>
@@ -111,7 +112,7 @@ export default function SellPage() {
           <div className="sec-label">SELLER CENTRE</div>
           <h1 style={{ fontSize: 24 }}>{seller.shopName}</h1>
         </div>
-        <span className="ai-badge" style={{ alignSelf: "center" }}>
+        <span className="chip-good" style={{ alignSelf: "center" }}>
           ● {seller.status}
         </span>
       </div>
@@ -129,7 +130,12 @@ export default function SellPage() {
 
       <div className="tabs">
         {(["products", "orders", "payouts"] as Tab[]).map((t) => (
-          <button key={t} className={`tab${tab === t ? " tab-active" : ""}`} onClick={() => setTab(t)}>
+          <button
+            key={t}
+            className={`tab${tab === t ? " tab-active" : ""}`}
+            aria-pressed={tab === t}
+            onClick={() => setTab(t)}
+          >
             {t === "products" ? "Products" : t === "orders" ? "Orders" : "Payouts"}
           </button>
         ))}
@@ -146,7 +152,7 @@ export default function SellPage() {
 
       <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
         <Link href="/studio" className="btn btn-primary" style={{ width: "auto" }}>
-          🎥 Go Live
+          Go Live
         </Link>
         <Link href="/profile" className="btn btn-ghost">
           Back to profile

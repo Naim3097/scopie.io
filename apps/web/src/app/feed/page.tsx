@@ -53,12 +53,13 @@ export default function FeedPage() {
   }, []);
 
   return (
-    <main className="page" style={{ paddingBottom: 0 }}>
+    <main className="page page--feed">
       {videos.length > 0 ? (
         <VideoFeed videos={videos} products={products} />
       ) : (
         <div className="page--pad">
-          <p className="page-sub" style={{ paddingTop: 40 }}>
+          {/* light-token .page-sub would vanish on the dark feed ground */}
+          <p style={{ paddingTop: 40, color: "rgba(255, 255, 255, 0.78)", fontSize: 14.5 }}>
             Loading your feed…
           </p>
         </div>

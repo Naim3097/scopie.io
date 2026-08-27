@@ -40,7 +40,8 @@ export default function ShopPage() {
   // New turns must be visible — without this, replies + product grids land
   // below the fold and tapping Ask appears to do nothing.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    endRef.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "end" });
   }, [thread.length]);
 
   const send = async () => {
@@ -68,11 +69,11 @@ export default function ShopPage() {
   return (
     <main className="page page--pad">
       <h1 className="page-title">
-        Hi, I&rsquo;m <span style={{ color: "var(--cyan)" }}>Scopie</span>
+        Hi, I&rsquo;m <span className="brand-name">Scopie</span>
       </h1>
       <p className="page-sub">Your AI Personal Shopper. I&rsquo;ll find the best for you.</p>
 
-      <div className="thread">
+      <div className="thread" aria-live="polite">
         {thread.map((turn, i) => (
           <div key={i} style={{ display: "contents" }}>
             <div className={`bubble ${turn.role === "user" ? "bubble-user" : "bubble-ai"}`}>{turn.text}</div>
@@ -85,7 +86,8 @@ export default function ShopPage() {
             )}
           </div>
         ))}
-        <div ref={endRef} />
+        {/* scroll-margin keeps the newest reply clear of the floating dock */}
+        <div ref={endRef} style={{ scrollMarginBottom: "calc(var(--nav-clear) + 16px)" }} />
       </div>
 
       <div className="chatrow">

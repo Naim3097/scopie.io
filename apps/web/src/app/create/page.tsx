@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { API_BASE, DEMO_MODE } from "@/lib/api";
+import { Hero } from "@/components/Glyph";
 import { getAuthHeaders } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
 import { track } from "@/lib/events";
@@ -180,7 +181,7 @@ export default function CreatePage() {
     const processing = stage === "processing";
     return (
       <main className="page page--pad" style={{ textAlign: "center", paddingTop: 80 }}>
-        <div style={{ fontSize: 56 }}>{processing ? "🎬" : "✅"}</div>
+        {processing ? <Hero kind="camera" /> : <Hero kind="check" tone="good" />}
         <h1 className="page-title">{processing ? "Processing your video" : "Posted!"}</h1>
         <p className="page-sub">
           {processing
@@ -248,7 +249,7 @@ export default function CreatePage() {
           </button>
         )}
         {error && (
-          <p role="alert" style={{ color: "var(--live)", fontSize: 14 }}>
+          <p role="alert" style={{ color: "var(--live-ink)", fontSize: 14 }}>
             {error}
           </p>
         )}

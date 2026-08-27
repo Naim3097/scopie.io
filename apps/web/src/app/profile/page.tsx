@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { API_BASE, DEMO_MODE } from "@/lib/api";
+import { Hero } from "@/components/Glyph";
 import { getAuthHeaders } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
 
@@ -49,7 +50,7 @@ export default function ProfilePage() {
   if (session.authEnabled && !session.userId) {
     return (
       <main className="page page--pad" style={{ textAlign: "center", paddingTop: 80 }}>
-        <div style={{ fontSize: 48 }}>👤</div>
+        <Hero kind="user" />
         <h1 className="page-title">Your Scopie identity</h1>
         <p className="page-sub">Sign in to sync your credits, orders and picks across devices.</p>
         <Link href="/auth?next=/profile" className="btn btn-primary" style={{ width: "auto" }}>
@@ -65,7 +66,7 @@ export default function ProfilePage() {
   return (
     <main className="page page--pad">
       <h1 className="page-title">
-        Hi, I&rsquo;m <span style={{ color: "var(--cyan)" }}>{isDemoIdentity ? "Zara" : displayName}</span>
+        Hi, I&rsquo;m <span className="brand-name">{isDemoIdentity ? "Zara" : displayName}</span>
       </h1>
       <p className="page-sub">This is your digital identity, powered by Scopie.</p>
 
@@ -96,7 +97,7 @@ export default function ProfilePage() {
       </div>
 
       <Link href="/sell" className="btn btn-primary" style={{ marginTop: 16, width: "auto" }}>
-        🛒 Seller Centre
+        Seller Centre
       </Link>
 
       {!isDemoIdentity && (

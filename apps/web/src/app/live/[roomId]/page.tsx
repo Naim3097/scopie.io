@@ -9,6 +9,7 @@ import { getAuthHeaders } from "@/lib/supabase";
 import { DEMO_LIVE_HLS, demoProducts, demoRooms, formatRM } from "@/lib/demo";
 import { MOBILE_HLS_CONFIG, applyLevelCap } from "@/lib/hls-config";
 import { connectViewer, type ViewerConnection } from "@/lib/live";
+import { Hero, StrokeIcon } from "@/components/Glyph";
 import { track } from "@/lib/events";
 
 interface ChatMsg {
@@ -299,7 +300,7 @@ export default function LiveRoomPage() {
   if (room === "not_found") {
     return (
       <main className="page page--pad" style={{ textAlign: "center", paddingTop: 80 }}>
-        <div style={{ fontSize: 48 }}>📺</div>
+        <Hero kind="tv" />
         <h1 className="page-title">This live has ended</h1>
         <p className="page-sub">The stream you're looking for isn't running any more.</p>
         <Link href="/live" className="btn btn-ghost">
@@ -312,7 +313,7 @@ export default function LiveRoomPage() {
   if (room && room.status === "ended") {
     return (
       <main className="page page--pad" style={{ textAlign: "center", paddingTop: 80 }}>
-        <div style={{ fontSize: 48 }}>👋</div>
+        <Hero kind="smile" />
         <h1 className="page-title">The stream just ended</h1>
         <p className="page-sub">Thanks for watching {room.title}.</p>
         <Link href="/live" className="btn btn-primary" style={{ width: "auto" }}>
@@ -346,24 +347,9 @@ export default function LiveRoomPage() {
 
       <div className="live-stage">
         <video ref={videoRef} playsInline muted={muted} loop={mode === "hls"} poster="/posters/poster-a.png" />
-        {sampleFallback && (
-          <span
-            style={{
-              position: "absolute",
-              top: 10,
-              left: 10,
-              background: "rgba(0,0,0,0.6)",
-              color: "#fff",
-              fontSize: 12,
-              padding: "4px 8px",
-              borderRadius: 6,
-            }}
-          >
-            Sample preview — live video unavailable
-          </span>
-        )}
+        {sampleFallback && <span className="stage-tag">Sample preview — live video unavailable</span>}
         <button className="live-mute" onClick={toggleMute} aria-label={muted ? "Unmute" : "Mute"}>
-          {muted ? "🔇" : "🔊"}
+          <StrokeIcon kind={muted ? "sound-off" : "sound-on"} size={19} />
         </button>
         {needsTap && (
           <button className="tap-to-play" onClick={tapToPlay} aria-label="Play stream">

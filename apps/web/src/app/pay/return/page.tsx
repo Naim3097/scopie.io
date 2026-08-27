@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { API_BASE, DEMO_MODE } from "@/lib/api";
+import { Hero } from "@/components/Glyph";
 import { getAuthHeaders } from "@/lib/supabase";
 
 type ViewState = "checking" | "paid" | "failed" | "pending" | "demo" | "none" | "signin";
@@ -69,30 +70,34 @@ function ReturnInner() {
   }, [demo, orderId]);
 
   const view = {
-    checking: { icon: "⏳", title: "Confirming your payment…", sub: "This usually takes a few seconds." },
-    paid: { icon: "✅", title: "Payment received", sub: "Your order is confirmed and held safely until delivery." },
-    failed: { icon: "❌", title: "Payment not completed", sub: "No money was taken. You can try again from the product page." },
+    checking: { icon: "clock", tone: "brand", title: "Confirming your payment…", sub: "This usually takes a few seconds." },
+    paid: { icon: "check", tone: "good", title: "Payment received", sub: "Your order is confirmed and held safely until delivery." },
+    failed: { icon: "cross", tone: "bad", title: "Payment not completed", sub: "No money was taken. You can try again from the product page." },
     pending: {
-      icon: "⏳",
+      icon: "clock",
+      tone: "brand",
       title: "Payment processing",
       sub: "We're waiting for your bank's confirmation — we'll reflect it in your orders shortly.",
     },
     demo: {
-      icon: "✅",
+      icon: "check",
+      tone: "good",
       title: "Demo checkout complete",
       sub: "No money moved. With a configured gateway, the order would now be in escrow until delivery.",
     },
     none: {
-      icon: "🛍️",
+      icon: "bag",
+      tone: "brand",
       title: "No order to show",
       sub: "There's nothing waiting here — browse Discover to find something you'll love.",
     },
     signin: {
-      icon: "🔐",
+      icon: "lock",
+      tone: "brand",
       title: "Sign in to see your order",
       sub: "You were signed out during payment. Sign back in and we'll show your order status.",
     },
-  }[state];
+  }[state] as { icon: string; tone: "brand" | "good" | "bad"; title: string; sub: string };
 
   const backHref =
     state === "signin" && orderId
@@ -102,7 +107,7 @@ function ReturnInner() {
 
   return (
     <main className="page page--pad" style={{ textAlign: "center", paddingTop: 80 }}>
-      <div style={{ fontSize: 56 }}>{view.icon}</div>
+      <Hero kind={view.icon} tone={view.tone} />
       <h1 className="page-title">{view.title}</h1>
       <p className="page-sub">{view.sub}</p>
       <Link href={backHref} className={state === "signin" ? "btn btn-primary" : "btn btn-ghost"} style={{ width: "auto" }}>

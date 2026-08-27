@@ -79,7 +79,7 @@ export function ProductCard({ product }: { product: Product }) {
           {busy ? "Opening checkout…" : "Buy with Scopie Pay"}
         </button>
         {error && (
-          <div style={{ color: "var(--live)", fontSize: 12.5, marginTop: 6 }} role="alert">
+          <div style={{ color: "var(--live-ink)", fontSize: 12.5, marginTop: 6 }} role="alert">
             {error}
           </div>
         )}

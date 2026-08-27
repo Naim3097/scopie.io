@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 // No maximumScale: pinch-to-zoom stays available (WCAG 1.4.4); inputs use
 // >=16px fonts so iOS focus auto-zoom doesn't fire anyway.
 export const viewport: Viewport = {
-  themeColor: "#F6F6FB",
+  themeColor: "#F8F9FC",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -47,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Instrument+Sans:wght@400;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
         />
       </head>
       <body>
