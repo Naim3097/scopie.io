@@ -18,47 +18,63 @@ interface Props {
 }
 
 /**
- * One feed item. The TikTok feel is three client-side habits:
- *  1. attach HLS for the active card AND its neighbours (preload ahead),
- *  2. play only after a source is actually attached (hls MANIFEST_PARSED /
- *     native canplay) — never fire play() at a source-less element,
- *  3. count watch time from the element's own playing/pause events, so
- *     background time never inflates the recommender's main signal, and
- *     flush it on deactivate AND unmount.
- * iOS Safari plays HLS natively; everywhere else uses hls.js. If unmuted
- * autoplay is blocked (iOS after user unmute, Low Power Mode), fall back to
- * muted and finally to a visible tap-to-play control — never a silent freeze.
+ * One feed item. Hard-won rules for real phones — do not relax:
+ *
+ *  1. STABLE EFFECTS. Every callback the media effects depend on is identity-
+ *     stable (props go through refs). If the HLS attach effect re-runs on a
+ *     parent re-render, the player is destroyed mid-scroll and the card goes
+ *     black with a dead play button — the exact bug this design fixes.
+ *  2. Play only after a source is attached (hls MANIFEST_PARSED / native
+ *     canplay); a rejected play() shows the tap-to-play control ONLY for
+ *     NotAllowedError (genuinely blocked). NotSupportedError/AbortError mean
+ *     "source not ready yet" — the attach events will retry.
+ *  3. Unmuting happens synchronously inside the tap gesture (el.muted +
+ *     play()), never via a state round-trip — mobile browsers only allow
+ *     audible playback from a user gesture.
+ *  4. Watch time counts the element's own playing/pause events and flushes
+ *     on deactivate AND unmount.
  */
 export function VideoCard({ video, product, active, near, muted, onToggleMute, onForceMute }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<{ destroy: () => void } | null>(null);
   const activeRef = useRef(active);
+  const mutedRef = useRef(muted);
+  const forceMuteRef = useRef(onForceMute);
   const playStartRef = useRef<number | null>(null);
   const watchAccumRef = useRef(0);
   const [liked, setLiked] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
+  const [buffering, setBuffering] = useState(false);
 
   activeRef.current = active;
+  mutedRef.current = muted;
+  forceMuteRef.current = onForceMute;
 
+  /** Identity-stable: reads everything through refs. */
   const attemptPlay = useCallback(() => {
     const el = videoRef.current;
     if (!el || !activeRef.current) return;
+    el.muted = mutedRef.current;
+    el.preload = "auto";
     el.play()
       .then(() => setNeedsTap(false))
-      .catch(() => {
+      .catch((err: DOMException) => {
+        if (err?.name !== "NotAllowedError") return; // source not ready — attach events retry
         if (!el.muted) {
-          // Audible autoplay blocked (iOS requires a user gesture): retry muted.
+          // Audible autoplay blocked: degrade to muted rather than freezing.
           el.muted = true;
-          onForceMute();
+          forceMuteRef.current();
           el.play()
             .then(() => setNeedsTap(false))
-            .catch(() => setNeedsTap(true));
+            .catch((e2: DOMException) => {
+              if (e2?.name === "NotAllowedError") setNeedsTap(true);
+            });
         } else {
           // Even muted autoplay blocked (Low Power Mode / data saver).
           setNeedsTap(true);
         }
       });
-  }, [onForceMute]);
+  }, []);
 
   const flushWatch = useCallback(() => {
     if (playStartRef.current !== null) {
@@ -72,7 +88,7 @@ export function VideoCard({ video, product, active, near, muted, onToggleMute, o
     }
   }, [video.id]);
 
-  // Attach / detach the stream based on the mounted window.
+  // Attach / detach the stream based on the mounted window ONLY.
   useEffect(() => {
     const el = videoRef.current;
     if (!el || !near) return;
@@ -92,11 +108,16 @@ export function VideoCard({ video, product, active, near, muted, onToggleMute, o
 
     void import("hls.js").then(({ default: Hls }) => {
       if (cancelled || !Hls.isSupported()) return;
-      const hls = new Hls({ maxBufferLength: 10, capLevelToPlayerSize: true });
+      const hls = new Hls({
+        // Fast first frame on mobile data: start at the lowest rung and let
+        // ABR climb; keep buffers small — the user swipes in seconds.
+        startLevel: 0,
+        maxBufferLength: 10,
+        backBufferLength: 10,
+        capLevelToPlayerSize: true,
+      });
       hls.loadSource(video.hlsUrl);
       hls.attachMedia(el);
-      // Play only once a source is genuinely attached — a play() before this
-      // rejects with NotSupportedError and nothing would retry.
       hls.on(Hls.Events.MANIFEST_PARSED, () => attemptPlay());
       // hls.js does not self-recover from fatal errors; without this, one
       // dropped segment on mobile data freezes the card forever.
@@ -117,11 +138,12 @@ export function VideoCard({ video, product, active, near, muted, onToggleMute, o
     };
   }, [near, video.hlsUrl, attemptPlay]);
 
-  // Watch-time accounting rides the element's own state, not our intent.
+  // Watch-time + buffering state ride the element's own events.
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
     const onPlaying = () => {
+      setBuffering(false);
       if (playStartRef.current === null) playStartRef.current = Date.now();
     };
     const onPause = () => {
@@ -130,11 +152,14 @@ export function VideoCard({ video, product, active, near, muted, onToggleMute, o
         playStartRef.current = null;
       }
     };
+    const onWaiting = () => setBuffering(true);
     el.addEventListener("playing", onPlaying);
     el.addEventListener("pause", onPause);
+    el.addEventListener("waiting", onWaiting);
     return () => {
       el.removeEventListener("playing", onPlaying);
       el.removeEventListener("pause", onPause);
+      el.removeEventListener("waiting", onWaiting);
     };
   }, []);
 
@@ -144,9 +169,12 @@ export function VideoCard({ video, product, active, near, muted, onToggleMute, o
     if (!el) return;
     if (active) {
       track({ type: "video.view", subjectId: video.id, surface: "feed" });
+      if (el.paused) setBuffering(true);
       attemptPlay();
     } else {
       el.pause();
+      setBuffering(false);
+      setNeedsTap(false);
       flushWatch();
     }
     return () => {
@@ -159,6 +187,22 @@ export function VideoCard({ video, product, active, near, muted, onToggleMute, o
     };
   }, [active, video.id, attemptPlay, flushWatch]);
 
+  /** In-gesture: mobile browsers only honor audio started from a tap. */
+  const toggleMute = () => {
+    const el = videoRef.current;
+    const nextMuted = !mutedRef.current;
+    if (el) {
+      el.muted = nextMuted;
+      if (!nextMuted && el.paused) void el.play().catch(() => undefined);
+    }
+    onToggleMute();
+  };
+
+  const tapToPlay = () => {
+    setNeedsTap(false);
+    attemptPlay();
+  };
+
   const like = () => {
     setLiked((v) => !v);
     track({ type: liked ? "video.unlike" : "video.like", subjectId: video.id, surface: "feed" });
@@ -167,8 +211,13 @@ export function VideoCard({ video, product, active, near, muted, onToggleMute, o
   return (
     <section className="feed-item" aria-label={`Video by ${video.creatorId}`}>
       <video ref={videoRef} playsInline muted={muted} loop preload="metadata" poster={video.posterUrl} />
+      {active && buffering && !needsTap && (
+        <div className="buffering" aria-hidden="true">
+          <div className="ring"></div>
+        </div>
+      )}
       {needsTap && (
-        <button className="tap-to-play" onClick={attemptPlay} aria-label="Play video">
+        <button className="tap-to-play" onClick={tapToPlay} aria-label="Play video">
           ▶
         </button>
       )}
@@ -208,7 +257,7 @@ export function VideoCard({ video, product, active, near, muted, onToggleMute, o
           <span className="icon">↗</span>
           {video.stats.shares ?? 0}
         </button>
-        <button className="feed-action" onClick={onToggleMute} aria-label={muted ? "Unmute" : "Mute"}>
+        <button className="feed-action" onClick={toggleMute} aria-label={muted ? "Unmute" : "Mute"}>
           <span className="icon">{muted ? "🔇" : "🔊"}</span>
         </button>
       </div>

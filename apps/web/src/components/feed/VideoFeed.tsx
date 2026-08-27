@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Product, Video } from "@scopie/core";
 import { VideoCard } from "./VideoCard";
 
@@ -9,13 +9,22 @@ interface Props {
   products: Record<string, Product>;
 }
 
-/** Preload window: media attaches for active ± this many cards. */
-const NEAR = 2;
+/**
+ * Preload window: active ± 1. More sounds nice but multiple HLS instances
+ * buffering concurrently on mobile data starve the ACTIVE card — the "stale
+ * screen for a few seconds" failure mode.
+ */
+const NEAR = 1;
 
 export function VideoFeed({ videos, products }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [muted, setMuted] = useState(true);
+
+  // Identity-stable handlers: VideoCard's media effects reference these, and
+  // a fresh identity per render would tear the players down mid-scroll.
+  const handleToggleMute = useCallback(() => setMuted((m) => !m), []);
+  const handleForceMute = useCallback(() => setMuted(true), []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -46,8 +55,8 @@ export function VideoFeed({ videos, products }: Props) {
           active={i === activeIndex}
           near={Math.abs(i - activeIndex) <= NEAR}
           muted={muted}
-          onToggleMute={() => setMuted((m) => !m)}
-          onForceMute={() => setMuted(true)}
+          onToggleMute={handleToggleMute}
+          onForceMute={handleForceMute}
         />
       ))}
     </div>

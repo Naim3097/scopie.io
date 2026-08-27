@@ -32,7 +32,19 @@ export default function LiveRoomPage() {
   ]);
   const [draft, setDraft] = useState("");
   const [dealLeft, setDealLeft] = useState(2 * 60 * 60);
+  const [muted, setMuted] = useState(true);
   const chatlogRef = useRef<HTMLDivElement>(null);
+
+  /** In-gesture unmute — mobile browsers only honor audio started from a tap. */
+  const toggleMute = () => {
+    const el = videoRef.current;
+    const next = !muted;
+    if (el) {
+      el.muted = next;
+      if (!next && el.paused) void el.play().catch(() => undefined);
+    }
+    setMuted(next);
+  };
 
   // New messages must be visible — a 200px scroller with appends below the
   // fold reads as a dead chat on a phone.
@@ -135,7 +147,10 @@ export default function LiveRoomPage() {
       </div>
 
       <div className="live-stage">
-        <video ref={videoRef} playsInline muted loop />
+        <video ref={videoRef} playsInline muted={muted} loop />
+        <button className="live-mute" onClick={toggleMute} aria-label={muted ? "Unmute" : "Mute"}>
+          {muted ? "🔇" : "🔊"}
+        </button>
         {pinned && (
           <div className="live-pin">
             {pinned.imageUrl && <img src={pinned.imageUrl} alt="" />}
