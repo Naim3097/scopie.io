@@ -13,6 +13,8 @@ import { ProductsController } from "./products/products.controller";
 import { ProductsService } from "./products/products.service";
 import { LiveController } from "./live/live.controller";
 import { LiveService } from "./live/live.service";
+import { LiveChatService } from "./live/live-chat.service";
+import { HostBrainService } from "./live/host-brain.service";
 import { PaymentsController } from "./payments/payments.controller";
 import { PaymentsService } from "./payments/payments.service";
 import { LeanXGateway } from "./payments/payment-gateway.leanx";
@@ -62,6 +64,8 @@ import { OrdersController } from "./orders/orders.controller";
     ProductsService,
     SellerService,
     LiveService,
+    LiveChatService,
+    HostBrainService,
     PaymentsService,
     WalletService,
     // The payment gateway is bound by PORT, not by vendor. Swapping providers

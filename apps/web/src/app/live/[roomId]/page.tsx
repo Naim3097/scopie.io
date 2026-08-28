@@ -13,9 +13,12 @@ import { Hero, StrokeIcon } from "@/components/Glyph";
 import { track } from "@/lib/events";
 
 interface ChatMsg {
+  id?: string;
   from: string;
   text: string;
   isHost?: boolean;
+  isSystem?: boolean;
+  product?: { id: string; title: string; priceSen: number } | null;
 }
 
 type RoomView = LiveRoom & { pinnedProduct?: Product | null };
@@ -59,13 +62,25 @@ export default function LiveRoomPage() {
   const [muted, setMuted] = useState(true);
   const [needsTap, setNeedsTap] = useState(false);
   const chatlogRef = useRef<HTMLDivElement>(null);
+  const lastChatIdRef = useRef("0");
 
   const roomGone = room === "not_found" || (room !== null && room.status === "ended");
   const polling = !DEMO_MODE && room !== null && room !== "not_found" && room.status !== "ended";
+  const isLive = room !== null && room !== "not_found" && room.status === "live";
 
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
+
+  // App Router reuses this component across /live/A -> /live/B — chat state
+  // must not leak between rooms (a stale cursor would mute the new room).
+  useEffect(() => {
+    setMessages(DEMO_MODE ? DEMO_CHAT : []);
+    lastChatIdRef.current = "0";
+    setDealLeft(null);
+    setRoom(null);
+    setMode("pending");
+  }, [roomId]);
 
   /** In-gesture unmute — mobile browsers only honor audio started from a tap. */
   const toggleMute = () => {
@@ -115,13 +130,37 @@ export default function LiveRoomPage() {
     cancelTokenRef.current = token;
     let gotVideo = false;
     let watchdog: ReturnType<typeof setTimeout> | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
     void (async () => {
-      const view = await apiGet<RoomView | null>(
-        `/v1/live/rooms/${roomId}`,
-        (demoRooms.find((r) => r.id === roomId) as RoomView | undefined) ?? null,
-      );
-      if (token.cancelled) return;
-      setRoom(view ?? "not_found");
+      let view: RoomView | null = null;
+      if (DEMO_MODE) {
+        view = (demoRooms.find((r) => r.id === roomId) as RoomView | undefined) ?? null;
+        if (token.cancelled) return;
+        setRoom(view ?? "not_found");
+      } else {
+        // Only a real 404 means "this live has ended" — a network blip on a
+        // flaky connection must retry, never mint a false terminal screen.
+        try {
+          const res = await fetch(`${API_BASE}/v1/live/rooms/${roomId}`, {
+            cache: "no-store",
+            signal: AbortSignal.timeout(4000),
+          });
+          if (token.cancelled) return;
+          if (res.status === 404) {
+            setRoom("not_found");
+            return;
+          }
+          if (!res.ok) throw new Error(`room load ${res.status}`);
+          view = (await res.json()) as RoomView;
+          setRoom(view);
+        } catch {
+          if (token.cancelled) return;
+          retryTimer = setTimeout(() => {
+            if (!token.cancelled) setConnectAttempt((n) => n + 1);
+          }, 5000);
+          return;
+        }
+      }
       if (!view) return;
       if (view.flashDeal) setDealLeft(Math.max(0, Math.floor(view.flashDeal.endsAtStreamMs / 1000)));
       if (view.status !== "live") return;
@@ -181,6 +220,7 @@ export default function LiveRoomPage() {
     return () => {
       token.cancelled = true;
       if (watchdog) clearTimeout(watchdog);
+      if (retryTimer) clearTimeout(retryTimer);
       lkRef.current?.disconnect();
       lkRef.current = null;
     };
@@ -218,6 +258,37 @@ export default function LiveRoomPage() {
     }, 10_000);
     return () => clearInterval(t);
   }, [roomId, polling]);
+
+  // Real mode: room chat lives on the server (it's how the AI host answers
+  // and how viewers see each other). Fetch new messages every 5 s while live.
+  useEffect(() => {
+    if (DEMO_MODE || !isLive) return;
+    let cancelled = false;
+    const pull = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/v1/live/rooms/${roomId}/chat?since=${lastChatIdRef.current}`, {
+          signal: AbortSignal.timeout(4000),
+        });
+        if (!res.ok || cancelled) return;
+        const { messages: fresh } = (await res.json()) as { messages: ChatMsg[] };
+        if (fresh.length === 0) return;
+        lastChatIdRef.current = fresh[fresh.length - 1]!.id ?? lastChatIdRef.current;
+        setMessages((m) => {
+          const seen = new Set(m.map((x) => x.id).filter(Boolean));
+          // cap the log: an hours-long stream must not grow the DOM forever
+          return [...m, ...fresh.filter((f) => !seen.has(f.id))].slice(-200);
+        });
+      } catch {
+        /* next tick retries */
+      }
+    };
+    void pull();
+    const t = setInterval(() => void pull(), 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [roomId, isLive]);
 
   // The ended screen must actually stop everything: the in-flight or live
   // LiveKit connection, hidden audio, HLS segment loading, and the poll.
@@ -287,14 +358,47 @@ export default function LiveRoomPage() {
     const text = draft.trim();
     if (!text) return;
     setDraft("");
-    setMessages((m) => [...m, { from: "You", text }]);
     track({ type: "live.chat", subjectId: roomId, surface: "live" });
-    const { reply } = await apiPost<{ reply: string }>(
-      "/v1/agents/shopper",
-      { message: text },
-      { reply: "Sure! Let me show you another colour ✨" },
-    );
-    setTimeout(() => setMessages((m) => [...m, { from: "Scopie", text: reply, isHost: true }]), 900);
+
+    // Pure-demo site: local simulation (no API exists).
+    if (DEMO_MODE) {
+      setMessages((m) => [...m, { from: "You", text }]);
+      const { reply } = await apiPost<{ reply: string }>(
+        "/v1/agents/shopper",
+        { message: text },
+        { reply: "Sure! Let me show you another colour ✨" },
+      );
+      setTimeout(() => setMessages((m) => [...m, { from: "Scopie", text: reply, isHost: true }]), 900);
+      return;
+    }
+
+    // Real mode: the server owns the chat (and the AI host's answers ride
+    // in on the 5 s poll).
+    try {
+      const res = await fetch(`${API_BASE}/v1/live/rooms/${roomId}/chat`, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...(await getAuthHeaders()) },
+        body: JSON.stringify({ text }),
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!res.ok) {
+        const detail =
+          res.status === 400
+            ? "That message couldn't be posted."
+            : "Chat is unavailable right now — try again in a moment.";
+        if (res.status !== 400) setDraft(text); // moderation rejections stay cleared
+        setMessages((m) => [...m, { from: "•", text: detail, isSystem: true }]);
+        return;
+      }
+      const { message } = (await res.json()) as { message: ChatMsg };
+      // NOTE: the cursor is NOT advanced here — skipping ahead would drop
+      // other viewers' messages posted in the poll gap. The next poll
+      // re-delivers this message and the id-dedupe below absorbs it.
+      setMessages((m) => (m.some((x) => x.id === message.id) ? m : [...m, message].slice(-200)));
+    } catch {
+      setDraft(text); // a failed send must not eat what they typed
+      setMessages((m) => [...m, { from: "•", text: "Chat is unavailable right now — try again in a moment.", isSystem: true }]);
+    }
   };
 
   if (room === "not_found") {
@@ -384,8 +488,14 @@ export default function LiveRoomPage() {
 
       <div className="chatlog" aria-live="polite" ref={chatlogRef}>
         {messages.map((m, i) => (
-          <div key={i} className="chatmsg">
+          <div key={m.id ?? `local_${i}`} className="chatmsg" style={m.isSystem ? { color: "var(--faint)" } : undefined}>
             <b>{m.isHost ? "✦ Scopie" : m.from}</b> {m.text}
+            {m.product && (
+              <span style={{ color: "var(--muted)", fontSize: 13 }}>
+                {" "}
+                · {m.product.title} — {formatRM(m.product.priceSen)}
+              </span>
+            )}
           </div>
         ))}
       </div>

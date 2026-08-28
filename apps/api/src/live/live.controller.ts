@@ -7,21 +7,27 @@ import {
   NotFoundException,
   Param,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { z } from "zod";
 import { LiveService } from "./live.service";
+import { LiveChatService } from "./live-chat.service";
 import { AuthGuard, CurrentUser } from "../auth/auth.guard";
 import type { AuthedUser } from "../auth/auth.service";
 
 const TokenBody = z.object({ roomId: z.string().min(1).max(64) });
 const CreateRoomBody = z.object({ title: z.string().max(120).default("") });
 const PinBody = z.object({ productId: z.string().min(1).max(64).nullable() });
+const ChatBody = z.object({ text: z.string().min(1).max(300) });
 
 @Controller("v1/live")
 export class LiveController {
-  constructor(@Inject(LiveService) private readonly live: LiveService) {}
+  constructor(
+    @Inject(LiveService) private readonly live: LiveService,
+    @Inject(LiveChatService) private readonly chat: LiveChatService,
+  ) {}
 
   /** Whether real broadcasting is available — the studio labels itself honestly with this. */
   @Get("config")
@@ -80,6 +86,22 @@ export class LiveController {
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     await this.live.pinProduct(user, id, parsed.data.productId);
     return { ok: true };
+  }
+
+  /** Room chat feed — pass ?since=<lastId> to fetch only what's new. */
+  @Get("rooms/:id/chat")
+  async chatFeed(@Param("id") id: string, @Query("since") since?: string) {
+    return { messages: await this.chat.listMessages(id, since) };
+  }
+
+  /** Viewers (guests included) chat; AI-hosted rooms answer via the host brain. */
+  @Post("rooms/:id/chat")
+  @Throttle({ default: { ttl: 60_000, limit: 30 } })
+  @UseGuards(AuthGuard)
+  async postChat(@Param("id") id: string, @Body() body: unknown, @CurrentUser() user: AuthedUser) {
+    const parsed = ChatBody.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return { message: await this.chat.postMessage(user, id, parsed.data.text) };
   }
 
   @Post("token")

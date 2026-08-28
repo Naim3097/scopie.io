@@ -153,13 +153,23 @@ Stream HLS (~$0.06/viewer-hour, 3–6 s latency). Product pins and flash deals
 are data events synced to **stream position, never wall clock** —
 `live_room_events.stream_ms` exists for exactly this.
 
-The AI host (`apps/live-agent`) is one avatar session per show regardless of
-audience size (~$6–12/hour): chat → question ranker → LLM with MCP catalog
-tools → BM/EN TTS → HeyGen LiveAvatar via the LiveKit avatar plugin
-(swappable for Anam/Tavus/Simli without touching agent logic). Security
-invariants are documented in `agent.py` — chat is data, tools are
-allowlisted, the API re-validates every command, prices never come from
-generated text, and the host is always labeled AI.
+The AI host splits into brain and body. The BRAIN is
+`HostBrainService` behind the API: every viewer message posted to
+`POST /v1/live/rooms/:id/chat` in an AI room is answered there —
+catalog-grounded (CommerceService is the only tool), chat quarantined as
+data, prices templated from the catalog with a fail-safe that replaces any
+generated price, every answer audited to `live_room_events` as
+`host_answer`. One brain serves every transport, works on the zero-infra
+demo site (scripted answers without `OPENAI_API_KEY`), and is where the API
+"re-validates every command" by construction. (Carve-outs, deliberate: the
+showcase demo room's answers live in bounded memory only — the
+`host_answer` audit applies to DB rooms; and chat answers carry
+`stream_ms = null` until the A/V worker reports stream position.) The BODY is
+`apps/live-agent` — one avatar session per show regardless of audience size
+(~$6–12/hour): it tails the room's chat feed and speaks each host answer
+(BM/EN TTS → HeyGen LiveAvatar via the LiveKit avatar plugin, swappable for
+Anam/Tavus/Simli). The worker executes nothing and calls no models; the
+host is always labeled AI.
 
 ## Agents
 

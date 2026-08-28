@@ -58,6 +58,19 @@ export const LiveRoom = z.object({
 });
 export type LiveRoom = z.infer<typeof LiveRoom>;
 
+export const LiveChatMessage = z.object({
+  id: z.string(),
+  from: z.string(),
+  text: z.string(),
+  isHost: z.boolean().default(false),
+  /** Catalog snapshot attached by the SERVER — prices never come from generated text. */
+  product: z
+    .object({ id: z.string(), title: z.string(), priceSen: z.number().int().nonnegative() })
+    .nullable()
+    .default(null),
+});
+export type LiveChatMessage = z.infer<typeof LiveChatMessage>;
+
 /**
  * Structured commands the live-host agent may emit. The commerce backend
  * re-validates every one server-side — chat text can never reach these directly.

@@ -43,6 +43,7 @@ create `apps/web/.env.local` containing **only the `NEXT_PUBLIC_*` lines**
 | Product search | `MEILI_HOST` (docker compose provides one) — catalog writes auto-index |
 | Multi-vendor catalog | `MEDUSA_URL` reads from Medusa's store API; unset, the catalog is Postgres `catalog_products` (DB mode) or the demo array. Seller Centre (`/sell`) writes to Postgres/demo — the Mercur vendor write path is pending. |
 | Live streaming | `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` — viewers join over WebRTC (subscribe-only tokens), sellers broadcast camera+mic from `/studio` (publisher tokens, owner-gated). Without them, rooms are clearly-labeled simulations over the demo stream. |
+| AI live host | Works out of the box: chat in an AI-hosted room and the host brain answers (catalog-grounded, scripted). `OPENAI_API_KEY` upgrades replies to an LLM (same guardrails: chat is data, prices only from the catalog). Voice + HeyGen avatar switch on via `apps/live-agent` with LiveKit creds. |
 | Payments (sandbox) | `LEANX_*` credentials + `API_PUBLIC_URL` (server-side only — see below) |
 | Creator uploads | `CF_ACCOUNT_ID` + `CF_STREAM_TOKEN` + `CF_WEBHOOK_SECRET` (+ DB + auth) — direct-to-Cloudflare uploads, ready-webhook, caption moderation, feed. Without them, `/create` demo-publishes a sample clip. |
 

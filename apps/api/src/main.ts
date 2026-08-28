@@ -24,6 +24,10 @@ const ALLOWED_ORIGINS = [
 async function bootstrap() {
   // rawBody is required for webhook signature verification (payments).
   const app = await NestFactory.create(AppModule, { rawBody: true });
+  // Deployed behind one proxy hop (Railway/Fly/Vercel) — without this the
+  // "per-IP" throttler keys every client to the proxy's address and the
+  // whole site shares one rate bucket.
+  (app.getHttpAdapter().getInstance() as { set: (k: string, v: unknown) => void }).set("trust proxy", 1);
   // sendBeacon flushes arrive as text/plain to stay CORS-preflight-free —
   // parse them so the events endpoint can accept the final watch batch.
   app.use(text({ type: "text/plain" }));
