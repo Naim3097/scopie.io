@@ -9,6 +9,17 @@ import { demoProducts, demoVideos } from "@/lib/demo";
 export default function FeedPage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [products, setProducts] = useState<Record<string, Product>>({});
+  // ?v=<id> deep link (from creator profiles) — read synchronously so the
+  // feed's first render already targets the right card (an effect would let
+  // card 0 flash active and log a spurious view first).
+  const [initialVideoId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      return new URLSearchParams(window.location.search).get("v");
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
     void (async () => {
@@ -59,7 +70,7 @@ export default function FeedPage() {
         scopie
       </span>
       {videos.length > 0 ? (
-        <VideoFeed videos={videos} products={products} />
+        <VideoFeed videos={videos} products={products} initialVideoId={initialVideoId} />
       ) : (
         <div className="page--pad">
           {/* light-token .page-sub would vanish on the dark feed ground */}

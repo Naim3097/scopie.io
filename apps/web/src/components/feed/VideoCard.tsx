@@ -1,9 +1,11 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import type { Product, Video } from "@scopie/core";
 import { useCommerce } from "@/components/commerce/Commerce";
 import { StrokeIcon } from "@/components/Glyph";
+import { ownCommentCount } from "@/lib/social";
 import { formatRM } from "@/lib/demo";
 import { MOBILE_HLS_CONFIG, applyLevelCap } from "@/lib/hls-config";
 import { track } from "@/lib/events";
@@ -18,6 +20,9 @@ interface Props {
    */
   near: boolean;
   muted: boolean;
+  /** Bumped when the comments sheet closes so the count re-reads local posts. */
+  commentsVersion: number;
+  onOpenComments: (video: Video) => void;
   onToggleMute: () => void;
   /** Autoplay of unmuted video was blocked — feed must fall back to muted. */
   onForceMute: () => void;
@@ -51,6 +56,8 @@ export const VideoCard = memo(function VideoCard({
   active,
   near: _near,
   muted,
+  commentsVersion,
+  onOpenComments,
   onToggleMute,
   onForceMute,
 }: Props) {
@@ -311,6 +318,12 @@ export const VideoCard = memo(function VideoCard({
   };
 
   const likeCount = (video.stats.likes ?? 0) + (liked ? 1 : 0);
+  // commentsVersion bumps on sheet close, forcing this memo'd card to re-read.
+  const commentCount = useMemo(
+    () => (video.stats.comments ?? 0) + ownCommentCount(video.id),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [video.id, video.stats.comments, commentsVersion],
+  );
 
   return (
     <section className="feed-item" aria-label={`Video by ${video.creatorId}`}>
@@ -338,7 +351,14 @@ export const VideoCard = memo(function VideoCard({
             </div>
           </button>
         )}
-        <div className="feed-creator">@{video.creatorId}</div>
+        {video.creatorId === "you" ? (
+          // Local demo posts: "you" has no creator page — plain text, not a dead link.
+          <span className="feed-creator">@you</span>
+        ) : (
+          <Link href={`/c/${encodeURIComponent(video.creatorId)}`} className="feed-creator">
+            @{video.creatorId}
+          </Link>
+        )}
         <div className="feed-caption">{video.caption}</div>
         <div className="feed-tags">{video.hashtags.map((t) => `#${t}`).join(" ")}</div>
       </div>
@@ -354,8 +374,16 @@ export const VideoCard = memo(function VideoCard({
           </span>
           {compact.format(likeCount)}
         </button>
-        {/* Comments return with the social phase — a dead button reads as a
-            broken app, so the rail goes without it until then. */}
+        <button
+          className="feed-action"
+          onClick={() => onOpenComments(video)}
+          aria-label={`Comments, ${commentCount}`}
+        >
+          <span className="icon" aria-hidden="true">
+            <StrokeIcon kind="comment" size={22} />
+          </span>
+          {compact.format(commentCount)}
+        </button>
         <button
           className="feed-action"
           onClick={() => {
