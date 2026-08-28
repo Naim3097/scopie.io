@@ -109,7 +109,7 @@ export default function ShopPage() {
             {turn.products && turn.products.length > 0 && (
               <div className="bubble-products">
                 {turn.products.slice(0, 4).map((p) => (
-                  <ProductCard key={p.id} product={p} />
+                  <ProductCard key={p.id} product={p} surface="shop" />
                 ))}
               </div>
             )}

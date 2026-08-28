@@ -1,104 +1,48 @@
 "use client";
 
-import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import type { Product } from "@scopie/core";
+import { useCommerce, type Surface } from "@/components/commerce/Commerce";
 import { formatRM } from "@/lib/demo";
-import { API_BASE, DEMO_MODE } from "@/lib/api";
-import { getAuthHeaders } from "@/lib/supabase";
-import { useSession } from "@/lib/session";
-import { flush, track } from "@/lib/events";
 
 /**
- * Product card with "Buy with Scopie Pay". Checkout is always pass-through:
- * the API derives the price from the catalog and identity from the auth
- * token (or the guest header in demo mode). A failed checkout shows an
- * error — it must never look like a completed payment.
+ * Product card. Tapping the card opens the product sheet; "Buy now" jumps
+ * straight to the Scopie Pay confirmation sheet — either way, money only
+ * moves on the confirmation tap (never from a card).
  */
-export function ProductCard({ product }: { product: Product }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const session = useSession();
-  const router = useRouter();
-  const pathname = usePathname();
-
-  const buy = async () => {
-    if (busy) return; // double-taps must not mint a second order
-    // With real auth configured, buying requires being signed in.
-    if (session.authEnabled && !session.userId) {
-      router.push(`/auth?next=${encodeURIComponent(pathname ?? "/discover")}`);
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    track({ type: "product.add_to_cart", subjectId: product.id, surface: "discover" });
-    // randomUUID is missing on older WebViews (budget Androids) — a thrown
-    // buy tap must never wedge the button at "Opening…".
-    const orderId =
-      typeof crypto !== "undefined" && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `ord_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-    // Carry the order id so the return page can poll webhook-verified status.
-    const returnUrl = `${window.location.origin}/pay/return?order=${orderId}`;
-    if (DEMO_MODE) {
-      // No API deployed: show the demo flow explicitly, no network attempt.
-      window.location.href = `/pay/return?demo_paid=1&order=${orderId}`;
-      return;
-    }
-    try {
-      await flush(); // don't lose the intent event to the navigation
-      const res = await fetch(`${API_BASE}/v1/payments/checkout`, {
-        method: "POST",
-        headers: { "content-type": "application/json", ...(await getAuthHeaders()) },
-        body: JSON.stringify({ orderId, productId: product.id, quantity: 1, returnUrl }),
-        signal: AbortSignal.timeout(8000),
-      });
-      if (res.status === 401) {
-        router.push(`/auth?next=${encodeURIComponent(pathname ?? "/discover")}`);
-        return;
-      }
-      if (!res.ok) {
-        setError("Checkout couldn't start. Please try again.");
-        setBusy(false);
-        return;
-      }
-      const { paymentUrl } = (await res.json()) as { paymentUrl: string };
-      window.location.href = paymentUrl;
-    } catch {
-      // A configured-but-unreachable API is an OUTAGE, not demo mode: show an
-      // error. A failed checkout must never render as a completed payment.
-      setError("Checkout couldn't start — please check your connection and try again.");
-      setBusy(false);
-    }
-  };
+export function ProductCard({ product, surface = "discover" }: { product: Product; surface?: Surface }) {
+  const { openProduct, buyNow } = useCommerce();
 
   return (
     <div className="card">
-      {product.imageUrl && <img src={product.imageUrl} alt={product.title} loading="lazy" />}
-      <div className="card-body">
-        {typeof product.matchScore === "number" && (
-          <span className="match">
-            <span aria-hidden="true">✦</span> {product.matchScore}% Match
+      <button className="card-tap" onClick={() => openProduct(product, surface)} aria-label={`View ${product.title}`}>
+        {product.imageUrl && <img src={product.imageUrl} alt="" loading="lazy" />}
+        <span className="card-body" style={{ display: "block", paddingBottom: 0 }}>
+          {typeof product.matchScore === "number" && (
+            <span className="match">
+              <span aria-hidden="true">✦</span> {product.matchScore}% Match
+            </span>
+          )}
+          <span className="card-title" style={{ display: "block" }}>
+            {product.title}
           </span>
-        )}
-        <div className="card-title">{product.title}</div>
-        {product.variant && <div className="card-variant">{product.variant}</div>}
-        <div className="card-price">{formatRM(product.priceSen)}</div>
-        {/* short label — "Buy with Scopie Pay" wraps to two lines on half-width
-            cards; the Scopie Pay branding lives on the checkout sheet itself */}
+          {product.variant && (
+            <span className="card-variant" style={{ display: "block" }}>
+              {product.variant}
+            </span>
+          )}
+          <span className="card-price" style={{ display: "block" }}>
+            {formatRM(product.priceSen)}
+          </span>
+        </span>
+      </button>
+      <div className="card-body" style={{ paddingTop: 8 }}>
         <button
           className="btn btn-primary"
-          style={{ marginTop: 10, padding: "11px 16px", fontSize: 14, whiteSpace: "nowrap" }}
-          onClick={() => void buy()}
-          disabled={busy}
+          style={{ padding: "11px 16px", fontSize: 14, whiteSpace: "nowrap" }}
+          onClick={() => buyNow(product, surface)}
         >
-          {busy ? "Opening…" : "Buy now"}
+          Buy now
         </button>
-        {error && (
-          <div style={{ color: "var(--live-ink)", fontSize: 12.5, marginTop: 6 }} role="alert">
-            {error}
-          </div>
-        )}
       </div>
     </div>
   );

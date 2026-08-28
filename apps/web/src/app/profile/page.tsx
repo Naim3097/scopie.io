@@ -3,9 +3,21 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { API_BASE, DEMO_MODE } from "@/lib/api";
+import { useCommerce } from "@/components/commerce/Commerce";
 import { Hero } from "@/components/Glyph";
+import { useCart } from "@/lib/cart";
 import { getAuthHeaders } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
+
+function CartRow() {
+  const cart = useCart();
+  const { openCart } = useCommerce();
+  return (
+    <button className="btn btn-ghost" onClick={openCart}>
+      Cart{cart.count > 0 ? ` · ${cart.count}` : ""}
+    </button>
+  );
+}
 
 export default function ProfilePage() {
   const session = useSession();
@@ -104,9 +116,12 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <Link href="/sell" className="btn btn-primary" style={{ marginTop: 16, width: "auto" }}>
-        Seller Centre
-      </Link>
+      <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+        <Link href="/sell" className="btn btn-primary" style={{ width: "auto" }}>
+          Seller Centre
+        </Link>
+        <CartRow />
+      </div>
 
       {!isDemoIdentity && (
         <button className="btn btn-ghost" style={{ marginTop: 12, marginLeft: 10 }} onClick={() => void session.signOut()}>

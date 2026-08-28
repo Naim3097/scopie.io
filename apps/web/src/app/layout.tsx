@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
+import { CommerceProvider } from "@/components/commerce/Commerce";
 import { PwaRegister } from "@/components/PwaRegister";
+import { CartProvider } from "@/lib/cart";
 import { SessionProvider } from "@/lib/session";
 
 export const metadata: Metadata = {
@@ -53,7 +55,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <PwaRegister />
         <SessionProvider>
-          <AppShell>{children}</AppShell>
+          <CartProvider>
+            <CommerceProvider>
+              <AppShell>{children}</AppShell>
+            </CommerceProvider>
+          </CartProvider>
         </SessionProvider>
       </body>
     </html>

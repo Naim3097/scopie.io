@@ -9,9 +9,9 @@ import { getAuthHeaders } from "@/lib/supabase";
 import { DEMO_LIVE_HLS, demoHostReply, demoProducts, demoRooms, formatRM } from "@/lib/demo";
 import { MOBILE_HLS_CONFIG, applyLevelCap } from "@/lib/hls-config";
 import { connectViewer, type ViewerConnection } from "@/lib/live";
+import { useCommerce } from "@/components/commerce/Commerce";
 import { Hero, StrokeIcon } from "@/components/Glyph";
 import { track } from "@/lib/events";
-import { useRouter } from "next/navigation";
 
 interface ChatMsg {
   id?: string;
@@ -65,7 +65,7 @@ export default function LiveRoomPage() {
   const chatlogRef = useRef<HTMLDivElement>(null);
   const lastChatIdRef = useRef("0");
   const demoReplyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const router = useRouter();
+  const { openProduct } = useCommerce();
 
   const roomGone = room === "not_found" || (room !== null && room.status === "ended");
   const polling = !DEMO_MODE && room !== null && room !== "not_found" && room.status !== "ended";
@@ -505,11 +505,10 @@ export default function LiveRoomPage() {
             <button
               className="btn btn-primary"
               style={{ width: "auto", padding: "9px 14px", fontSize: 13.5 }}
-              // Hands off to the AI shopper with this product pre-asked —
-              // the buy tap itself arrives with the product-sheet phase.
+              // The product sheet opens over the stream — the show keeps playing.
               onClick={() => {
                 track({ type: "live.pin_tap", subjectId: pinned.id, surface: "live" });
-                router.push(`/shop?q=${encodeURIComponent(pinned.title)}`);
+                openProduct(pinned, "live");
               }}
               aria-label={`Shop ${pinned.title}`}
             >

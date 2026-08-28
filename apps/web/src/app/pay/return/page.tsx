@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { API_BASE, DEMO_MODE } from "@/lib/api";
 import { Hero } from "@/components/Glyph";
+import { useCart } from "@/lib/cart";
 import { getAuthHeaders } from "@/lib/supabase";
 
 type ViewState = "checking" | "paid" | "failed" | "pending" | "demo" | "none" | "signin";
@@ -18,7 +19,22 @@ function ReturnInner() {
   const params = useSearchParams();
   const demo = params.get("demo_paid") === "1";
   const orderId = params.get("order");
+  const fromCart = params.get("from_cart") === "1";
+  const purchasedLine = params.get("pline");
+  const cart = useCart();
   const [state, setState] = useState<ViewState>(demo ? "demo" : "checking");
+
+  // The cart only changes once the outcome exists: a demo success clears it
+  // here; a real payment removes the purchased line when status turns paid.
+  // (Cancelling at the gateway keeps the cart intact.)
+  useEffect(() => {
+    if (demo && fromCart) cart.clear();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo, fromCart]);
+  useEffect(() => {
+    if (state === "paid" && purchasedLine) cart.remove(purchasedLine);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, purchasedLine]);
 
   useEffect(() => {
     if (demo || !orderId || DEMO_MODE) {

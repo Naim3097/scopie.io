@@ -183,7 +183,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  async createCheckout(req: CheckoutRequest): Promise<{ paymentUrl: string }> {
+  async createCheckout(req: CheckoutRequest): Promise<{ paymentUrl: string; amountSen: number }> {
     const product = await this.products.getById(req.productId);
     if (!product) throw new NotFoundException("product not found");
     // Self-dealing (buy your own product to cycle money / farm ranking
@@ -277,8 +277,10 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       const entry = this.demoOrders.get(req.orderId);
       if (entry) entry.providerRef = result.providerRef;
     }
-    // White-label boundary: only the paymentUrl crosses to the client.
-    return { paymentUrl: result.paymentUrl };
+    // White-label boundary: only the paymentUrl crosses to the client — plus
+    // the server-derived amount, so the confirmation sheet can verify the
+    // number the user is authorizing matches what will be charged.
+    return { paymentUrl: result.paymentUrl, amountSen };
   }
 
   async handleWebhook(event: PaymentWebhookEvent): Promise<void> {

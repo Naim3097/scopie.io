@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { Product, Video } from "@scopie/core";
+import { useCommerce } from "@/components/commerce/Commerce";
 import { StrokeIcon } from "@/components/Glyph";
 import { formatRM } from "@/lib/demo";
 import { MOBILE_HLS_CONFIG, applyLevelCap } from "@/lib/hls-config";
@@ -66,7 +66,7 @@ export const VideoCard = memo(function VideoCard({
   const lastPosRef = useRef(-1);
   /** Position to resume from after a recovery re-attach. */
   const resumePosRef = useRef(0);
-  const router = useRouter();
+  const { openProduct } = useCommerce();
   const [liked, setLiked] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
   const [buffering, setBuffering] = useState(false);
@@ -329,12 +329,8 @@ export const VideoCard = memo(function VideoCard({
         {product && (
           <button
             className="feed-product"
-            // Until the product sheet ships, the chip hands off to the AI
-            // shopper with the product pre-asked — never a dead tap.
-            onClick={() => {
-              track({ type: "product.view", subjectId: product.id, surface: "feed", meta: { chip: true } });
-              router.push(`/shop?q=${encodeURIComponent(product.title)}`);
-            }}
+            // The product sheet opens over the video — the feed keeps playing.
+            onClick={() => openProduct(product, "feed")}
           >
             <div>
               <b>{product.title}</b>
