@@ -77,7 +77,9 @@ export default function ProfilePage() {
         <div className="avatar-orb" aria-hidden="true">
           {(isDemoIdentity ? "Z" : displayName.charAt(0).toUpperCase()) || "S"}
         </div>
-        <div className="verified">{isDemoIdentity ? "◌ GUEST PREVIEW" : "✓ SIGNED IN"}</div>
+        <div className="verified">
+          <span aria-hidden="true">{isDemoIdentity ? "◌" : "✓"}</span> {isDemoIdentity ? "GUEST PREVIEW" : "SIGNED IN"}
+        </div>
         <h2>{isDemoIdentity ? "Zara Tan" : displayName}</h2>
         <div className="scopid">
           {isDemoIdentity

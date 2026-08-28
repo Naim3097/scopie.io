@@ -40,6 +40,7 @@ export default function CreatePage() {
   const [caption, setCaption] = useState("");
   const [stage, setStage] = useState<Stage>("compose");
   const [progress, setProgress] = useState(0);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [myUploads, setMyUploads] = useState<MyUpload[]>([]);
 
@@ -75,9 +76,12 @@ export default function CreatePage() {
     // Pure-demo site (no API): register locally so the feed shows it.
     if (DEMO_MODE) {
       try {
-        const mine = JSON.parse(localStorage.getItem("scopie_demo_myvideos") ?? "[]") as unknown[];
-        (Array.isArray(mine) ? mine : []).unshift({ caption: caption.trim() || "My first Scopie video ✨", at: Date.now() });
-        localStorage.setItem("scopie_demo_myvideos", JSON.stringify((Array.isArray(mine) ? mine : []).slice(0, 20)));
+        const raw = JSON.parse(localStorage.getItem("scopie_demo_myvideos") ?? "[]") as unknown;
+        // ONE array instance end to end — two fresh `?:` arrays here once
+        // discarded the unshifted post while still claiming "Posted!".
+        const mine = Array.isArray(raw) ? raw : [];
+        mine.unshift({ caption: caption.trim() || "My first Scopie video ✨", at: Date.now() });
+        localStorage.setItem("scopie_demo_myvideos", JSON.stringify(mine.slice(0, 20)));
       } catch {
         /* best-effort */
       }
@@ -214,7 +218,22 @@ export default function CreatePage() {
           aria-label="Caption"
         />
         {!DEMO_MODE && (
-          <input ref={fileRef} type="file" accept="video/*" className="auth-input" aria-label="Video file" />
+          <>
+            {/* the raw OS file control is the one non-pill widget in the app —
+                hide it behind a styled label */}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="video/*"
+              id="create-file"
+              className="sr-only"
+              aria-label="Video file"
+              onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+            />
+            <label htmlFor="create-file" className="btn btn-ghost" style={{ cursor: "pointer" }}>
+              {fileName ?? "Choose a video…"}
+            </label>
+          </>
         )}
         {DEMO_MODE && (
           <div className="section-note" style={{ marginTop: 0 }}>
@@ -235,9 +254,9 @@ export default function CreatePage() {
               <div className="upload-fill" style={{ width: `${progress}%` }} />
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 6 }}>
-              <span style={{ color: "var(--muted)", fontSize: 13 }} aria-live="polite">
-                Uploading… {progress}%
-              </span>
+              {/* no aria-live: the progressbar above announces; a live region
+                  here chattered on every tick */}
+              <span style={{ color: "var(--muted)", fontSize: 13 }}>Uploading… {progress}%</span>
               <button className="btn btn-ghost" style={{ padding: "6px 12px", fontSize: 13 }} onClick={cancelUpload}>
                 Cancel
               </button>

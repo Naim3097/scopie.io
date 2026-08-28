@@ -32,7 +32,12 @@ export function ProductCard({ product }: { product: Product }) {
     setBusy(true);
     setError(null);
     track({ type: "product.add_to_cart", subjectId: product.id, surface: "discover" });
-    const orderId = crypto.randomUUID();
+    // randomUUID is missing on older WebViews (budget Androids) — a thrown
+    // buy tap must never wedge the button at "Opening…".
+    const orderId =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `ord_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
     // Carry the order id so the return page can poll webhook-verified status.
     const returnUrl = `${window.location.origin}/pay/return?order=${orderId}`;
     if (DEMO_MODE) {
@@ -71,7 +76,11 @@ export function ProductCard({ product }: { product: Product }) {
     <div className="card">
       {product.imageUrl && <img src={product.imageUrl} alt={product.title} loading="lazy" />}
       <div className="card-body">
-        {typeof product.matchScore === "number" && <span className="match">✦ {product.matchScore}% Match</span>}
+        {typeof product.matchScore === "number" && (
+          <span className="match">
+            <span aria-hidden="true">✦</span> {product.matchScore}% Match
+          </span>
+        )}
         <div className="card-title">{product.title}</div>
         {product.variant && <div className="card-variant">{product.variant}</div>}
         <div className="card-price">{formatRM(product.priceSen)}</div>

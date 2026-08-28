@@ -28,6 +28,7 @@ export default function StudioPage() {
   const roomRef = useRef<LiveRoom | null>(null);
   const authHeadersRef = useRef<Record<string, string> | null>(null);
   const mountedRef = useRef(true);
+  const cameraReleasedRef = useRef(false);
   const pinSeqRef = useRef(0);
   const [stage, setStage] = useState<StudioStage>("loading");
   const [seller, setSeller] = useState<SellerProfile | null>(null);
@@ -36,6 +37,7 @@ export default function StudioPage() {
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [broadcastAvailable, setBroadcastAvailable] = useState(false);
   const [broadcastReal, setBroadcastReal] = useState(false);
+  const [confirmEnd, setConfirmEnd] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /** Best-effort room end that survives page teardown (keepalive). */
@@ -105,16 +107,18 @@ export default function StudioPage() {
     };
   }, [stage]);
 
-  // Camera preview as soon as the studio opens.
+  // Camera preview as soon as the studio opens. The demo go-live keeps this
+  // exact stream, so a getUserMedia resolving AFTER "Go live" was tapped
+  // (permission prompt up, slow camera init) must still attach — only a real
+  // unmount or an already-released stream slot may stop it.
   useEffect(() => {
     if (stage !== "preview") return;
     const el = videoRef.current;
     if (!el) return;
-    let cancelled = false;
     void navigator.mediaDevices
       ?.getUserMedia({ video: { facingMode: "user" }, audio: true })
       .then((stream) => {
-        if (cancelled) {
+        if (!mountedRef.current || cameraReleasedRef.current) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
@@ -123,9 +127,6 @@ export default function StudioPage() {
         void el.play().catch(() => undefined);
       })
       .catch(() => setError("Camera access is needed to go live — check your browser permissions."));
-    return () => {
-      cancelled = true;
-    };
   }, [stage]);
 
   const createRoom = async (headers: Record<string, string>) =>
@@ -265,8 +266,19 @@ export default function StudioPage() {
     }
   };
 
+  // Ending a paying broadcast must never be one accidental tap.
+  const requestEnd = () => {
+    if (!confirmEnd) {
+      setConfirmEnd(true);
+      setTimeout(() => setConfirmEnd(false), 3500);
+      return;
+    }
+    void endStream();
+  };
+
   const endStream = async () => {
     const room = roomRef.current;
+    cameraReleasedRef.current = true;
     lkRef.current?.disconnect();
     lkRef.current = null;
     previewStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -331,7 +343,11 @@ export default function StudioPage() {
           <div className="sec-label">LIVE STUDIO</div>
           <h1 style={{ fontSize: 22 }}>{seller?.shopName}</h1>
         </div>
-        {live && <span className="live-badge">● LIVE{broadcastReal ? "" : " (demo)"}</span>}
+        {live && (
+          <span className="live-badge">
+            <span aria-hidden="true">●</span> LIVE{broadcastReal ? "" : " (demo)"}
+          </span>
+        )}
       </div>
 
       <div className="live-stage">
@@ -359,6 +375,10 @@ export default function StudioPage() {
             value={title}
             maxLength={120}
             onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+              if (e.key === "Enter") void goLive();
+            }}
             aria-label="Stream title"
           />
           <button className="btn btn-primary" onClick={() => void goLive()} disabled={stage === "starting"}>
@@ -374,13 +394,13 @@ export default function StudioPage() {
       ) : (
         <div style={{ marginTop: 14 }}>
           <h2 style={{ fontSize: 15, marginBottom: 8 }}>Pin a product</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 264, overflowY: "auto" }}>
             {products.length === 0 && (
               <div className="section-note" style={{ marginTop: 0 }}>
                 No products yet — add some in the Seller Centre to pin them here.
               </div>
             )}
-            {products.slice(0, 6).map((p) => (
+            {products.map((p) => (
               <button
                 key={p.id}
                 className="seller-row"
@@ -399,8 +419,12 @@ export default function StudioPage() {
               </button>
             ))}
           </div>
-          <button className="btn btn-ghost" style={{ marginTop: 14, color: "var(--live-ink)" }} onClick={() => void endStream()}>
-            End stream
+          <button
+            className="btn btn-ghost"
+            style={{ marginTop: 14, color: "var(--live-ink)", fontWeight: confirmEnd ? 800 : undefined }}
+            onClick={requestEnd}
+          >
+            {confirmEnd ? "Tap again to end the stream" : "End stream"}
           </button>
         </div>
       )}

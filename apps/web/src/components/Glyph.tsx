@@ -58,6 +58,7 @@ export const PATHS: Record<string, React.ReactNode> = {
   ),
   smile: <path d="M6.5 12.5c2.4 4 8.6 4 11 0" strokeWidth="2.4" />,
   spark: <path d="M12 3.5 13.9 10 20.5 12 13.9 14 12 20.5 10.1 14 3.5 12 10.1 10z" fill="currentColor" stroke="none" />,
+  play: <path d="M8.5 5.8v12.4L18.7 12z" fill="currentColor" stroke="none" />,
   heart: (
     <path d="M12 19.2C7.4 16 4.6 13.1 4.6 10a3.8 3.8 0 0 1 6.8-2.3l.6.8.6-.8A3.8 3.8 0 0 1 19.4 10c0 3.1-2.8 6-7.4 9.2Z" />
   ),
@@ -103,8 +104,8 @@ export function StrokeIcon({ kind, size = 20 }: { kind: keyof typeof PATHS & str
 }
 
 const HERO_TINTS: Record<string, { bg: string; fg: string }> = {
-  good: { bg: "#dff2e8", fg: "var(--good)" },
-  bad: { bg: "#fbe3eb", fg: "var(--live-ink)" },
+  good: { bg: "var(--good-soft)", fg: "var(--good)" },
+  bad: { bg: "var(--bad-soft)", fg: "var(--live-ink)" },
   brand: { bg: "var(--accent-soft)", fg: "var(--accent)" },
 };
 

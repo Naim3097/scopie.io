@@ -51,18 +51,26 @@ function lsSet(key: string, value: unknown): void {
   }
 }
 
+const LS_SHIPPED = "scopie_demo_shipped";
+
 function demoOrdersFor(products: Product[]): SellerOrder[] {
   // Illustrative orders so the Orders tab and payable balance demo well:
   // one to ship, one shipped, one delivered (feeds the balance stat).
+  // "Mark shipped" persists — the button must visibly do something.
+  const shipped = lsGet<string[]>(LS_SHIPPED, []);
   const states = ["unfulfilled", "shipped", "delivered"] as const;
-  return products.slice(0, 3).map((p, i) => ({
-    orderId: `demo-order-${i}`,
-    productId: p.id,
-    amountSen: p.priceSen,
-    paymentStatus: "paid",
-    fulfillmentStatus: states[i] ?? "delivered",
-    createdAt: new Date(Date.now() - i * 86_400_000).toISOString(),
-  }));
+  return products.slice(0, 3).map((p, i) => {
+    const orderId = `demo-order-${i}`;
+    const base = states[i] ?? "delivered";
+    return {
+      orderId,
+      productId: p.id,
+      amountSen: p.priceSen,
+      paymentStatus: "paid",
+      fulfillmentStatus: base === "unfulfilled" && shipped.includes(orderId) ? "shipped" : base,
+      createdAt: new Date(Date.now() - i * 86_400_000).toISOString(),
+    };
+  });
 }
 
 // ── API backend ─────────────────────────────────────────────────────
@@ -137,7 +145,11 @@ export async function listSellerOrders(): Promise<SellerOrder[]> {
 }
 
 export async function shipOrder(orderId: string): Promise<boolean> {
-  if (DEMO_MODE) return true; // illustrative in demo mode
+  if (DEMO_MODE) {
+    const shipped = lsGet<string[]>(LS_SHIPPED, []);
+    if (!shipped.includes(orderId)) lsSet(LS_SHIPPED, [...shipped, orderId]);
+    return true;
+  }
   const res = await apiCall<{ status?: string }>(
     `/v1/seller/orders/${orderId}/ship`,
     { method: "POST", body: JSON.stringify({}) },

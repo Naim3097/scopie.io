@@ -54,6 +54,7 @@ export default function FeedPage() {
 
   return (
     <main className="page page--feed" style={{ position: "relative" }}>
+      <h1 className="sr-only">Feed</h1>
       <span className="feed-brand" aria-hidden="true">
         scopie
       </span>
@@ -62,7 +63,7 @@ export default function FeedPage() {
       ) : (
         <div className="page--pad">
           {/* light-token .page-sub would vanish on the dark feed ground */}
-          <p style={{ paddingTop: 40, color: "rgba(255, 255, 255, 0.78)", fontSize: 14.5 }}>
+          <p role="status" style={{ paddingTop: 40, color: "rgba(255, 255, 255, 0.78)", fontSize: 14.5 }}>
             Loading your feed…
           </p>
         </div>

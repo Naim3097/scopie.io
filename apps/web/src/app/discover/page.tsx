@@ -13,14 +13,16 @@ type Sort = "trending" | "foryou";
 
 export default function DiscoverPage() {
   const [picks, setPicks] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<Sort>("trending");
 
   useEffect(() => {
-    void apiGet<Product[]>("/v1/products/picks?limit=12", demoProducts).then((p) =>
+    void apiGet<Product[]>("/v1/products/picks?limit=12", demoProducts).then((p) => {
       // Demo mode fills the grid with samples; a configured store that
       // answers 200 [] stays honestly empty (no phantom products).
-      setPicks(DEMO_MODE && p.length === 0 ? demoProducts : p),
-    );
+      setPicks(DEMO_MODE && p.length === 0 ? demoProducts : p);
+      setLoading(false);
+    });
   }, []);
 
   const shown = useMemo(() => {
@@ -92,7 +94,11 @@ export default function DiscoverPage() {
 
       <div className="sec-label">FOR YOU</div>
       <h2 style={{ fontSize: 18, margin: "0 0 12px" }}>AI Picks</h2>
-      {shown.length === 0 ? (
+      {loading ? (
+        <div className="buffering" style={{ position: "static", padding: "30px 0" }} role="status" aria-label="Loading picks">
+          <div className="ring" style={{ borderTopColor: "var(--accent)", borderColor: "var(--line-strong)" }}></div>
+        </div>
+      ) : shown.length === 0 ? (
         <div className="section-note" style={{ marginTop: 0 }}>
           Sellers are stocking their shelves — check back soon for your first picks.
         </div>

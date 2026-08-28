@@ -122,3 +122,36 @@ export const DEMO_LIVE_HLS = HLS_A;
 export function formatRM(sen: number): string {
   return `RM ${(sen / 100).toFixed(2)}`;
 }
+
+/**
+ * Pure-demo live-host reply — a client-side mirror of the API brain's
+ * scripted rules, so the zero-backend site never answers a shipping
+ * question with "let me show you another colour".
+ */
+export function demoHostReply(question: string, pinnedProductId?: string | null): string {
+  const q = question.toLowerCase();
+  const words = q.replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w) => w.length > 2);
+  const match =
+    demoProducts.find((p) =>
+      words.some((w) => p.title.toLowerCase().includes(w) || p.tags.some((t) => t.includes(w) || w.includes(t))),
+    ) ??
+    demoProducts.find((p) => p.id === pinnedProductId) ??
+    null;
+
+  if (/deal|discount|promo|diskaun|offer/.test(q)) {
+    return "Yes — 10% off the pinned pick while the timer on screen is running ✨";
+  }
+  if (/how much|price|cost|berapa|harga/.test(q) && match) {
+    return `${match.title} is ${formatRM(match.priceSen)} — tap the card to grab it ✨`;
+  }
+  if (/ship|delivery|deliver|pos|penghantaran|arrive/.test(q)) {
+    return "Delivery is shown at checkout before you pay — nothing is charged until you confirm.";
+  }
+  if (/size|saiz|fit|colour|color|warna/.test(q) && match) {
+    return match.variant
+      ? `This one comes as ${match.variant}. Tap the card for the full options.`
+      : `Tap the card for ${match.title} — all options are listed there.`;
+  }
+  if (match) return `Take a look at ${match.title} — I think you'll like this one ✨`;
+  return "Ask me about any product, price or size in this show — I'll find it for you ✨";
+}

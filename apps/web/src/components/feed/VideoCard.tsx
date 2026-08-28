@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Product, Video } from "@scopie/core";
 import { StrokeIcon } from "@/components/Glyph";
 import { formatRM } from "@/lib/demo";
@@ -65,6 +66,7 @@ export const VideoCard = memo(function VideoCard({
   const lastPosRef = useRef(-1);
   /** Position to resume from after a recovery re-attach. */
   const resumePosRef = useRef(0);
+  const router = useRouter();
   const [liked, setLiked] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
   const [buffering, setBuffering] = useState(false);
@@ -320,15 +322,19 @@ export const VideoCard = memo(function VideoCard({
       )}
       {needsTap && (
         <button className="tap-to-play" onClick={tapToPlay} aria-label="Play video">
-          ▶
+          <StrokeIcon kind="play" size={44} />
         </button>
       )}
       <div className="feed-overlay">
         {product && (
           <button
             className="feed-product"
-            // TODO: open the product sheet; until then this is a chip tap, not a sheet view.
-            onClick={() => track({ type: "product.view", subjectId: product.id, surface: "feed", meta: { chip: true } })}
+            // Until the product sheet ships, the chip hands off to the AI
+            // shopper with the product pre-asked — never a dead tap.
+            onClick={() => {
+              track({ type: "product.view", subjectId: product.id, surface: "feed", meta: { chip: true } });
+              router.push(`/shop?q=${encodeURIComponent(product.title)}`);
+            }}
           >
             <div>
               <b>{product.title}</b>
@@ -352,19 +358,19 @@ export const VideoCard = memo(function VideoCard({
           </span>
           {compact.format(likeCount)}
         </button>
+        {/* Comments return with the social phase — a dead button reads as a
+            broken app, so the rail goes without it until then. */}
         <button
           className="feed-action"
-          onClick={() => track({ type: "video.comment", subjectId: video.id, surface: "feed" })}
-          aria-label={`Comments, ${video.stats.comments ?? 0}`}
-        >
-          <span className="icon" aria-hidden="true">
-            <StrokeIcon kind="comment" size={22} />
-          </span>
-          {compact.format(video.stats.comments ?? 0)}
-        </button>
-        <button
-          className="feed-action"
-          onClick={() => track({ type: "video.share", subjectId: video.id, surface: "feed" })}
+          onClick={() => {
+            track({ type: "video.share", subjectId: video.id, surface: "feed" });
+            const url = `${window.location.origin}/feed`;
+            if (navigator.share) {
+              void navigator.share({ title: "Scopie", text: video.caption, url }).catch(() => undefined);
+            } else {
+              void navigator.clipboard?.writeText(url).catch(() => undefined);
+            }
+          }}
           aria-label={`Share, ${video.stats.shares ?? 0}`}
         >
           <span className="icon" aria-hidden="true">

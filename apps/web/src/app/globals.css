@@ -17,11 +17,14 @@
   --accent-2: #9485eb;      /* Digital Lavender */
   --accent-soft: #eeebfb;
   --ai-gradient: linear-gradient(135deg, #695acd 0%, #5f7be6 55%, #3fb6dc 100%);
-  /* light stop capped at #7a6ce0: white text stays ≥4.5:1 across the run */
-  --violet-gradient: linear-gradient(135deg, #695acd, #7a6ce0);
+  /* light stop capped at #6f61d2: white text stays ≥4.5:1 across the run
+     (#7a6ce0 computed to 4.16:1 — measured, not assumed) */
+  --violet-gradient: linear-gradient(135deg, #695acd, #6f61d2);
   --live: #ff4d79;          /* fills only — never text on light ground */
   --live-ink: #c8114e;      /* text-safe live red (≥4.5:1 on white/Cloud White) */
   --good: #177a4c;
+  --good-soft: #dff2e8;
+  --bad-soft: #fbe3eb;
   --graphite-deep: #14131f; /* feed / stage ground */
   --radius: 20px;
   --radius-sm: 14px;
@@ -35,6 +38,13 @@
 }
 
 * { box-sizing: border-box; }
+
+/* Visually hidden, screen-reader available. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
 
 html, body {
   margin: 0;
@@ -417,7 +427,7 @@ button { font: inherit; cursor: pointer; }
 /* Neutral status chip (shop active etc.) — ai-badge stays AI-disclosure only. */
 .chip-good {
   display: inline-flex; align-items: center; gap: 5px;
-  background: #dff2e8; color: var(--good);
+  background: var(--good-soft); color: var(--good);
   font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 4px 11px;
 }
 /* On-video tag (e.g. sample-preview notice) — graphite pill, never raw black. */
@@ -438,7 +448,6 @@ button { font: inherit; cursor: pointer; }
   box-shadow: var(--shadow-soft);
 }
 .live-stage video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.live-topline { position: absolute; top: 12px; left: 12px; display: flex; gap: 8px; z-index: 2; }
 .live-pin {
   position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 2;
   /* opaque over video — no per-frame backdrop re-blur on budget GPUs */

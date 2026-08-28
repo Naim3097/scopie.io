@@ -10,9 +10,13 @@ const THUMBS = ["/posters/poster-a.png", "/posters/poster-b.png"];
 
 export default function LiveListPage() {
   const [rooms, setRooms] = useState<LiveRoom[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void apiGet<LiveRoom[]>("/v1/live/rooms", demoRooms).then((r) => setRooms(r.length > 0 ? r : demoRooms));
+    void apiGet<LiveRoom[]>("/v1/live/rooms", demoRooms).then((r) => {
+      setRooms(r.length > 0 ? r : demoRooms);
+      setLoading(false);
+    });
   }, []);
 
   return (
@@ -24,6 +28,11 @@ export default function LiveListPage() {
         Live now
       </h1>
       <p className="page-sub">Shop together, in real time.</p>
+      {loading && (
+        <div className="buffering" style={{ position: "static", padding: "30px 0" }} role="status" aria-label="Loading live rooms">
+          <div className="ring" style={{ borderTopColor: "var(--accent)", borderColor: "var(--line-strong)" }}></div>
+        </div>
+      )}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {rooms.map((room, i) => (
           <Link key={room.id} href={`/live/${room.id}`} className="live-tile">

@@ -147,7 +147,7 @@ export default function ShopPage() {
         </button>
       </div>
       <div className="section-note">
-        Scopie can search, compare and fill your cart — but checkout always asks you to confirm. Your money never
+        Scopie can search and compare picks for you — but checkout always asks you to confirm. Your money never
         moves without your tap.
       </div>
     </main>

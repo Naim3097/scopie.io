@@ -6,11 +6,12 @@ import { useParams } from "next/navigation";
 import type { LiveRoom, Product } from "@scopie/core";
 import { API_BASE, DEMO_MODE, apiGet, apiPost } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/supabase";
-import { DEMO_LIVE_HLS, demoProducts, demoRooms, formatRM } from "@/lib/demo";
+import { DEMO_LIVE_HLS, demoHostReply, demoProducts, demoRooms, formatRM } from "@/lib/demo";
 import { MOBILE_HLS_CONFIG, applyLevelCap } from "@/lib/hls-config";
 import { connectViewer, type ViewerConnection } from "@/lib/live";
 import { Hero, StrokeIcon } from "@/components/Glyph";
 import { track } from "@/lib/events";
+import { useRouter } from "next/navigation";
 
 interface ChatMsg {
   id?: string;
@@ -63,6 +64,8 @@ export default function LiveRoomPage() {
   const [needsTap, setNeedsTap] = useState(false);
   const chatlogRef = useRef<HTMLDivElement>(null);
   const lastChatIdRef = useRef("0");
+  const demoReplyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const router = useRouter();
 
   const roomGone = room === "not_found" || (room !== null && room.status === "ended");
   const polling = !DEMO_MODE && room !== null && room !== "not_found" && room.status !== "ended";
@@ -73,13 +76,18 @@ export default function LiveRoomPage() {
   }, [mode]);
 
   // App Router reuses this component across /live/A -> /live/B — chat state
-  // must not leak between rooms (a stale cursor would mute the new room).
+  // must not leak between rooms (a stale cursor would mute the new room, and
+  // a pending demo reply would land in the wrong chat).
   useEffect(() => {
+    if (demoReplyTimerRef.current) clearTimeout(demoReplyTimerRef.current);
     setMessages(DEMO_MODE ? DEMO_CHAT : []);
     lastChatIdRef.current = "0";
     setDealLeft(null);
     setRoom(null);
     setMode("pending");
+    return () => {
+      if (demoReplyTimerRef.current) clearTimeout(demoReplyTimerRef.current);
+    };
   }, [roomId]);
 
   /** In-gesture unmute — mobile browsers only honor audio started from a tap. */
@@ -316,6 +324,14 @@ export default function LiveRoomPage() {
       }
     };
     el.addEventListener("canplay", tryPlay);
+    el.addEventListener("loadeddata", tryPlay);
+    // A load-interrupt can reject the first play() with a transient error the
+    // NotAllowedError-only guard rightly ignores — without a retry the stage
+    // then sits paused forever with no tap button. Nudge until playing.
+    const nudge = setInterval(() => {
+      if (cancelled || !el.paused || el.readyState < 2) return;
+      tryPlay();
+    }, 1500);
     if (el.canPlayType("application/vnd.apple.mpegurl") !== "") {
       el.src = DEMO_LIVE_HLS;
     } else {
@@ -343,6 +359,8 @@ export default function LiveRoomPage() {
     return () => {
       cancelled = true;
       el.removeEventListener("canplay", tryPlay);
+      el.removeEventListener("loadeddata", tryPlay);
+      clearInterval(nudge);
       hls?.destroy();
     };
   }, [mode]);
@@ -360,15 +378,15 @@ export default function LiveRoomPage() {
     setDraft("");
     track({ type: "live.chat", subjectId: roomId, surface: "live" });
 
-    // Pure-demo site: local simulation (no API exists).
+    // Pure-demo site: local simulation (no API exists) — the reply mirrors
+    // the server brain's scripted rules so every question gets a sane answer.
     if (DEMO_MODE) {
       setMessages((m) => [...m, { from: "You", text }]);
-      const { reply } = await apiPost<{ reply: string }>(
-        "/v1/agents/shopper",
-        { message: text },
-        { reply: "Sure! Let me show you another colour ✨" },
+      const reply = demoHostReply(text, room !== null && room !== "not_found" ? room.pinnedProductId : null);
+      demoReplyTimerRef.current = setTimeout(
+        () => setMessages((m) => [...m, { from: "Scopie", text: reply, isHost: true }]),
+        900,
       );
-      setTimeout(() => setMessages((m) => [...m, { from: "Scopie", text: reply, isHost: true }]), 900);
       return;
     }
 
@@ -442,22 +460,32 @@ export default function LiveRoomPage() {
           <h1 style={{ fontSize: 20 }}>{room ? room.title : "Scopie Live"}</h1>
           {room?.hostType === "ai" && (
             <span className="ai-badge" title="This host is an AI avatar">
-              ✦ AI Host — always disclosed
+              <span aria-hidden="true">✦</span> AI Host — always disclosed
             </span>
           )}
         </div>
-        <span className="live-badge">● LIVE</span>
+        {/* The badge asserts liveness — never show it before the room loads. */}
+        {isLive && (
+          <span className="live-badge">
+            <span aria-hidden="true">●</span> LIVE
+          </span>
+        )}
       </div>
 
       <div className="live-stage">
         <video ref={videoRef} playsInline muted={muted} loop={mode === "hls"} poster="/posters/poster-a.png" />
+        {room === null && (
+          <div className="buffering" aria-hidden="true">
+            <div className="ring"></div>
+          </div>
+        )}
         {sampleFallback && <span className="stage-tag">Sample preview — live video unavailable</span>}
         <button className="live-mute" onClick={toggleMute} aria-label={muted ? "Unmute" : "Mute"}>
           <StrokeIcon kind={muted ? "sound-off" : "sound-on"} size={19} />
         </button>
         {needsTap && (
           <button className="tap-to-play" onClick={tapToPlay} aria-label="Play stream">
-            ▶
+            <StrokeIcon kind="play" size={44} />
           </button>
         )}
         {pinned && (
@@ -477,8 +505,13 @@ export default function LiveRoomPage() {
             <button
               className="btn btn-primary"
               style={{ width: "auto", padding: "9px 14px", fontSize: 13.5 }}
-              onClick={() => track({ type: "live.pin_tap", subjectId: pinned.id, surface: "live" })}
-              aria-label={`Add ${pinned.title}`}
+              // Hands off to the AI shopper with this product pre-asked —
+              // the buy tap itself arrives with the product-sheet phase.
+              onClick={() => {
+                track({ type: "live.pin_tap", subjectId: pinned.id, surface: "live" });
+                router.push(`/shop?q=${encodeURIComponent(pinned.title)}`);
+              }}
+              aria-label={`Shop ${pinned.title}`}
             >
               +
             </button>
@@ -489,7 +522,16 @@ export default function LiveRoomPage() {
       <div className="chatlog" aria-live="polite" ref={chatlogRef}>
         {messages.map((m, i) => (
           <div key={m.id ?? `local_${i}`} className="chatmsg" style={m.isSystem ? { color: "var(--faint)" } : undefined}>
-            <b>{m.isHost ? "✦ Scopie" : m.from}</b> {m.text}
+            <b>
+              {m.isHost ? (
+                <>
+                  <span aria-hidden="true">✦</span> Scopie
+                </>
+              ) : (
+                m.from
+              )}
+            </b>{" "}
+            {m.text}
             {m.product && (
               <span style={{ color: "var(--muted)", fontSize: 13 }}>
                 {" "}

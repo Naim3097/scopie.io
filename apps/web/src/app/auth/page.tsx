@@ -63,8 +63,12 @@ function AuthInner() {
   }
 
   const sendCode = async () => {
+    if (busy) return;
     const email = emailInput.trim().toLowerCase();
-    if (!email.includes("@") || busy) return;
+    if (!email.includes("@")) {
+      setError("Enter your email address to get a sign-in code.");
+      return;
+    }
     setBusy(true);
     setError(null);
     const { error: err } = await supabase!.auth.signInWithOtp({
@@ -84,8 +88,12 @@ function AuthInner() {
   };
 
   const verify = async () => {
+    if (busy) return;
     const token = code.trim();
-    if (token.length < 6 || busy) return;
+    if (token.length < 6) {
+      setError("Enter the 6-digit code from your email.");
+      return;
+    }
     setBusy(true);
     setError(null);
     const { error: err } = await supabase!.auth.verifyOtp({
