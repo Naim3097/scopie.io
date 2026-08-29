@@ -332,7 +332,8 @@ export default function LiveRoomPage() {
       if (cancelled || !el.paused || el.readyState < 2) return;
       tryPlay();
     }, 1500);
-    if (el.canPlayType("application/vnd.apple.mpegurl") !== "") {
+    const isHls = /\.m3u8(?:$|\?)/i.test(DEMO_LIVE_HLS);
+    if (!isHls || el.canPlayType("application/vnd.apple.mpegurl") !== "") {
       el.src = DEMO_LIVE_HLS;
     } else {
       import("hls.js")

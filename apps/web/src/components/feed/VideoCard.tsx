@@ -133,7 +133,10 @@ export const VideoCard = memo(function VideoCard({
     const resumeAt = resumePosRef.current;
     resumePosRef.current = 0;
 
-    const canNative = el.canPlayType("application/vnd.apple.mpegurl") !== "";
+    // Self-hosted MP4s (and anything non-HLS) play through the element
+    // directly on every browser — hls.js is only for .m3u8 streams.
+    const isHls = /\.m3u8(?:$|\?)/i.test(video.hlsUrl);
+    const canNative = !isHls || el.canPlayType("application/vnd.apple.mpegurl") !== "";
     if (canNative) {
       el.src = video.hlsUrl;
       const onLoadedMeta = () => {

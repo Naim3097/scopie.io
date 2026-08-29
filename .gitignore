@@ -27,3 +27,6 @@ coverage/
 # local machine config (contains absolute local paths)
 .claude/
 .vercel/
+
+# Original (pre-conversion) video masters — web-ready copies live in apps/web/public/videos
+assets/video-originals/

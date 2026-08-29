@@ -46,53 +46,72 @@ export const demoProducts: Product[] = [
   },
 ];
 
-// Demo video: third-party test streams (real film content, never test
-// patterns). Replaced by Cloudflare Stream-hosted clips in the next phase.
-const HLS_A = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
-const HLS_B = "https://test-streams.mux.dev/tos_ismc/main.m3u8";
+/**
+ * Feed clips: self-hosted under /public/videos (720p H.264, faststart) —
+ * no third-party stream dependency. Ids double as ?v= deep-link targets
+ * and comment-store keys, so keep them stable.
+ */
+interface Clip {
+  slug: string;
+  creator: string;
+  caption: string;
+  tags: string[];
+  products?: string[];
+}
 
-export const demoVideos: Video[] = [
-  {
-    id: "v1",
-    creatorId: "Aisyah",
-    caption: "New collection drop is finally here! Which one is your favourite?",
-    hlsUrl: HLS_A,
-    posterUrl: "/posters/poster-a.png",
-    hashtags: ["ScopieStyle", "NewDrop", "OOTD"],
-    productIds: ["p_luxe_bag"],
-    stats: { likes: 1200, comments: 128, shares: 76 },
-  },
-  {
-    id: "v2",
-    creatorId: "Daniel",
-    caption: "Morning run, clear mind.",
-    hlsUrl: HLS_B,
-    posterUrl: "/posters/poster-b.png",
-    hashtags: ["HealthyMind", "MorningRoutine"],
-    productIds: ["p_cloud_runner"],
-    stats: { likes: 860, comments: 54, shares: 31 },
-  },
-  {
-    id: "v3",
-    creatorId: "Hana",
-    caption: "Clean girl aesthetic — 3 pieces, endless looks ✨",
-    hlsUrl: HLS_A,
-    posterUrl: "/posters/poster-a.png",
-    hashtags: ["CleanGirl", "Aesthetic"],
-    productIds: ["p_elegant_watch"],
-    stats: { likes: 2300, comments: 210, shares: 143 },
-  },
-  {
-    id: "v4",
-    creatorId: "Liyana",
-    caption: "Travel essentials for your next getaway 🧳",
-    hlsUrl: HLS_B,
-    posterUrl: "/posters/poster-b.png",
-    hashtags: ["TravelEssentials"],
-    productIds: ["p_eau_de_luxe"],
-    stats: { likes: 990, comments: 87, shares: 40 },
-  },
+const CLIPS: Clip[] = [
+  { slug: "scopie-concept", creator: "scopie", caption: "Welcome to Scopie — meet your new digital world ✨", tags: ["Scopie", "NewDigitalWorld"] },
+  { slug: "kalima-ai-model", creator: "kalima", caption: "Meet Kalima — AI model, always disclosed ✦", tags: ["AIModel", "AIonScopie"] },
+  { slug: "batik-modern", creator: "batikdoludolu", caption: "Batik, but make it modern 🌺", tags: ["ModernBatik", "MadeInMY"], products: ["p_luxe_bag"] },
+  { slug: "hoor-ugc-1", creator: "hoor", caption: "Get ready with me ✨", tags: ["GRWM", "OOTD"], products: ["p_eau_de_luxe"] },
+  { slug: "not-ai-1", creator: "scopie", caption: "Not AI… or is it? ✦", tags: ["SpotTheAvatar"] },
+  { slug: "kalima-photoshoot-1", creator: "kalima", caption: "Behind the shoot 📸", tags: ["BTS", "Photoshoot"], products: ["p_elegant_watch"] },
+  { slug: "batik-traditional", creator: "batikdoludolu", caption: "Traditional batik, timeless craft", tags: ["Batik", "Heritage"] },
+  { slug: "hoor-ugc-2", creator: "hoor", caption: "Everyday fit check 🔥", tags: ["OOTD", "FitCheck"] },
+  { slug: "digital-human", creator: "scopie", caption: "Digital humans are here — always disclosed ✦", tags: ["AIonScopie"] },
+  { slug: "kalima-ugc-1", creator: "kalima", caption: "Trying this trend 💜", tags: ["Trending"] },
+  { slug: "nexova-product-intro", creator: "nexova", caption: "Product intro, done right 🎬", tags: ["ProductLaunch"], products: ["p_cloud_runner"] },
+  { slug: "not-ai-2", creator: "scopie", caption: "Real or rendered? 👀 ✦", tags: ["SpotTheAvatar"] },
+  { slug: "hoor-ugc-3", creator: "hoor", caption: "You asked, I answered 💬", tags: ["AskMeAnything"] },
+  { slug: "kalima-daily-life", creator: "kalima", caption: "A day in my life 🌤", tags: ["DayInMyLife"] },
+  { slug: "batik-release", creator: "batikdoludolu", caption: "New release loading… 👀", tags: ["ComingSoon"] },
+  { slug: "i-look-real", creator: "scopie", caption: "I look real, don't I? ✦ AI — always labeled", tags: ["SpotTheAvatar"] },
+  { slug: "kalima-ugc-2", creator: "kalima", caption: "New drop — who's in? 👀", tags: ["NewDrop"] },
+  { slug: "hoor-ugc-4", creator: "hoor", caption: "Little things, big vibes ✨", tags: ["DailyFinds"] },
+  { slug: "not-ai-3", creator: "scopie", caption: "Look closer ✦ AI, always disclosed", tags: ["AIonScopie"] },
+  { slug: "kalima-photoshoot-2", creator: "kalima", caption: "Golden hour on set ✨", tags: ["GoldenHour"] },
+  { slug: "project-based", creator: "scopie", caption: "From idea to launch 🚀", tags: ["Builders"] },
+  { slug: "kalima-ugc-3", creator: "kalima", caption: "Weekend mood ✨", tags: ["Weekend"] },
+  { slug: "nexova-cinematic", creator: "nexova", caption: "Cinematic mode: ON 🎬", tags: ["CinematicAds"] },
+  { slug: "not-ai-4", creator: "scopie", caption: "Blink and you'll miss it ✦", tags: ["SpotTheAvatar"] },
+  { slug: "kalima-slow-cut", creator: "kalima", caption: "Slow it down 🎞", tags: ["Cinematic"] },
+  { slug: "problem-solving", creator: "scopie", caption: "Built to solve real problems 💡", tags: ["BuildWithScopie"] },
+  { slug: "digital-identity", creator: "scopie", caption: "Your digital identity, powered by Scopie 🔐", tags: ["ScopieID"] },
 ];
+
+function clipHash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+export const demoVideos: Video[] = CLIPS.map((c) => {
+  const h = clipHash(c.slug);
+  return {
+    id: c.slug,
+    creatorId: c.creator,
+    caption: c.caption,
+    hlsUrl: `/videos/${c.slug}.mp4`,
+    posterUrl: `/videos/posters/${c.slug}.jpg`,
+    hashtags: c.tags,
+    productIds: c.products ?? [],
+    stats: {
+      likes: 300 + (h % 4200),
+      comments: 8 + (h % 230),
+      shares: 5 + (h % 150),
+    },
+  };
+});
 
 export const demoRooms: LiveRoom[] = [
   {
@@ -117,7 +136,8 @@ export const demoRooms: LiveRoom[] = [
   },
 ];
 
-export const DEMO_LIVE_HLS = HLS_A;
+/** Live-room sample loop — a self-hosted clip, looped by the player. */
+export const DEMO_LIVE_HLS = "/videos/kalima-photoshoot-1.mp4";
 
 export function formatRM(sen: number): string {
   return `RM ${(sen / 100).toFixed(2)}`;
