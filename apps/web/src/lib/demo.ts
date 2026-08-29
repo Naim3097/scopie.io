@@ -62,6 +62,7 @@ interface Clip {
 const CLIPS: Clip[] = [
   { slug: "scopie-concept", creator: "scopie", caption: "Welcome to Scopie — meet your new digital world ✨", tags: ["Scopie", "NewDigitalWorld"] },
   { slug: "kalima-ai-model", creator: "kalima", caption: "Meet Kalima — AI model, always disclosed ✦", tags: ["AIModel", "AIonScopie"] },
+  { slug: "problem-solving", creator: "scopie", caption: "Built to solve real problems 💡", tags: ["BuildWithScopie"] },
   { slug: "batik-modern", creator: "batikdoludolu", caption: "Batik, but make it modern 🌺", tags: ["ModernBatik", "MadeInMY"], products: ["p_luxe_bag"] },
   { slug: "hoor-ugc-1", creator: "hoor", caption: "Get ready with me ✨", tags: ["GRWM", "OOTD"], products: ["p_eau_de_luxe"] },
   { slug: "not-ai-1", creator: "scopie", caption: "Not AI… or is it? ✦", tags: ["SpotTheAvatar"] },
@@ -85,7 +86,6 @@ const CLIPS: Clip[] = [
   { slug: "nexova-cinematic", creator: "nexova", caption: "Cinematic mode: ON 🎬", tags: ["CinematicAds"] },
   { slug: "not-ai-4", creator: "scopie", caption: "Blink and you'll miss it ✦", tags: ["SpotTheAvatar"] },
   { slug: "kalima-slow-cut", creator: "kalima", caption: "Slow it down 🎞", tags: ["Cinematic"] },
-  { slug: "problem-solving", creator: "scopie", caption: "Built to solve real problems 💡", tags: ["BuildWithScopie"] },
   { slug: "digital-identity", creator: "scopie", caption: "Your digital identity, powered by Scopie 🔐", tags: ["ScopieID"] },
 ];
 
