@@ -7,7 +7,7 @@ import type { Viewport } from "next";
  * itself is a client component.)
  */
 export const viewport: Viewport = {
-  themeColor: "#14131f",
+  themeColor: "#1b1726",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Product, Video } from "@scopie/core";
+import { HelmetMark, Wordmark } from "@/components/Brand";
 import { VideoFeed } from "@/components/feed/VideoFeed";
 import { apiGet, DEMO_MODE } from "@/lib/api";
 import { demoProducts, demoVideos } from "@/lib/demo";
@@ -67,7 +68,8 @@ export default function FeedPage() {
     <main className="page page--feed" style={{ position: "relative" }}>
       <h1 className="sr-only">Feed</h1>
       <span className="feed-brand" aria-hidden="true">
-        scopie
+        <HelmetMark size={27} fill="#ffffff" />
+        <Wordmark color="#ffffff" />
       </span>
       {videos.length > 0 ? (
         <VideoFeed videos={videos} products={products} initialVideoId={initialVideoId} />
