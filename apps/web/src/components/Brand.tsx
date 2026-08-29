@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useId } from "react";
 
 /**
@@ -91,12 +92,32 @@ export function Wordmark({ color = "currentColor" }: { color?: string }) {
   );
 }
 
+/* aria-label is naming-prohibited on generic spans/paragraphs (ARIA 1.2) —
+   screen readers would fall through to the literal "sc"+"pie" text nodes. So
+   the lockup is always: visuals hidden from AT + an sr-only name. */
+
 /** Primary lockup for light surfaces: gradient helmet + violet wordmark. */
 export function Brand() {
   return (
-    <span className="brand" aria-label="Scopie">
-      <HelmetMark size={34} />
-      <Wordmark color="#695ACD" />
+    <span className="brand">
+      <span className="brand-visual" aria-hidden="true">
+        <HelmetMark size={34} />
+        <Wordmark color="#695ACD" />
+      </span>
+      <span className="sr-only">Scopie</span>
     </span>
+  );
+}
+
+/** The lockup as the way home — topbar brands link back to the hub. */
+export function BrandLink() {
+  return (
+    <Link href="/" className="brand">
+      <span className="brand-visual" aria-hidden="true">
+        <HelmetMark size={34} />
+        <Wordmark color="#695ACD" />
+      </span>
+      <span className="sr-only">Scopie home</span>
+    </Link>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Product, Video } from "@scopie/core";
 import { HelmetMark, Wordmark } from "@/components/Brand";
@@ -67,10 +68,13 @@ export default function FeedPage() {
   return (
     <main className="page page--feed" style={{ position: "relative" }}>
       <h1 className="sr-only">Feed</h1>
-      <span className="feed-brand" aria-hidden="true">
-        <HelmetMark size={27} fill="#ffffff" />
-        <Wordmark color="#ffffff" />
-      </span>
+      <Link href="/" className="feed-brand">
+        <span className="brand-visual" aria-hidden="true">
+          <HelmetMark size={27} fill="#ffffff" />
+          <Wordmark color="#ffffff" />
+        </span>
+        <span className="sr-only">Scopie home</span>
+      </Link>
       {videos.length > 0 ? (
         <VideoFeed videos={videos} products={products} initialVideoId={initialVideoId} />
       ) : (

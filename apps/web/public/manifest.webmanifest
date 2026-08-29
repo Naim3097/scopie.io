@@ -3,7 +3,7 @@
   "short_name": "Scopie",
   "description": "Discover what's next, just for you. Social shopping with your AI personal shopper.",
   "id": "/",
-  "start_url": "/feed",
+  "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#F8F9FC",

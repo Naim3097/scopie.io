@@ -112,6 +112,8 @@ button { font: inherit; cursor: pointer; }
   display: inline-flex; align-items: center; gap: 9px;
   font-weight: 800; font-size: 22px; letter-spacing: -0.03em;
 }
+/* The aria-hidden visual half of a lockup (mark + wordmark). */
+.brand-visual { display: inline-flex; align-items: center; gap: inherit; }
 .brand-word { font-weight: 800; letter-spacing: -0.03em; color: #695acd; }
 /* Inline accent name ("Hi, I'm Scopie") */
 .brand-name {
@@ -382,8 +384,8 @@ button { font: inherit; cursor: pointer; }
   display: inline-flex; align-items: center; gap: 7px;
   color: #fff; font-size: 19px; font-weight: 800; letter-spacing: -0.03em;
   filter: drop-shadow(0 1px 5px rgba(0, 0, 0, 0.4));
-  pointer-events: none;
 }
+.feed-brand:focus-visible { outline: 2px solid #fff; outline-offset: 4px; border-radius: 8px; }
 .feed-brand .brand-word { color: #fff; }
 
 /* ── commerce sheets ── */
@@ -696,6 +698,188 @@ input.auth-input { border-radius: 999px; padding: 13px 18px; }
 .section-note {
   background: var(--surface-2); border-radius: 16px; padding: 12px 16px;
   color: var(--muted); font-size: 12.5px; margin-top: 18px;
+}
+
+/* ── hub (the gateway "/") ──
+   Recreates the brand-sheet main page: lockup, headline, and the three
+   app-icon tiles on a soft halo. Layout rhythm is proportional (dvh clamps)
+   so the composition holds from SE to Pro Max. */
+.hub-scene {
+  min-height: 100vh; /* dvh fallback */
+  min-height: 100dvh;
+  background:
+    radial-gradient(90% 46% at 50% 0%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0) 72%),
+    radial-gradient(130% 90% at 50% 118%, rgba(203, 189, 247, 0.4), rgba(203, 189, 247, 0) 60%),
+    linear-gradient(180deg, #f4f3fb 0%, #edebf8 100%);
+}
+.hub {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 0 24px calc(env(safe-area-inset-bottom) + 48px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.hub-brand {
+  margin: clamp(64px, 15vh, 148px) 0 0; /* dvh fallback */
+  margin: clamp(64px, 15dvh, 148px) 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 28px;
+}
+/* The lockup owns the page (sheet hierarchy) — the headline stays under it. */
+.hub-title {
+  margin-top: 34px;
+  font-size: 21px;
+  letter-spacing: -0.02em;
+  line-height: 1.4;
+  color: var(--ink);
+}
+/* #63607e, not --faint: measured 5.09:1 on the gradient's darkest stop
+   (#edebf8) — --faint's 4.5:1 guarantee only holds on --bg. */
+.hub-sub {
+  margin: 12px 0 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #63607e;
+}
+
+.hub-stage {
+  position: relative;
+  margin-top: clamp(52px, 12vh, 116px); /* dvh fallback */
+  margin-top: clamp(52px, 12dvh, 116px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* The luminous disc the tiles sit on — a white glow with a delicate rim,
+   centered just below the tile row so the labels rest inside it. */
+.hub-halo {
+  position: absolute;
+  left: 50%;
+  top: 62px;
+  transform: translate(-50%, -50%);
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.5) 66%, rgba(255, 255, 255, 0.3) 100%);
+  box-shadow: 0 30px 70px rgba(105, 90, 205, 0.1);
+}
+/* Rim light: crisp along the top, dissolving toward the bottom. */
+.hub-halo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  -webkit-mask-image: linear-gradient(to bottom, #000 30%, transparent 80%);
+  mask-image: linear-gradient(to bottom, #000 30%, transparent 80%);
+}
+
+.hub-mods {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+}
+.hub-mod {
+  width: 86px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.hub-tile {
+  width: 86px;
+  height: 86px;
+  border-radius: 20px; /* ~23% — the iOS app-icon ratio, as on the sheet */
+  display: grid;
+  place-items: center;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+/* Center emphasis, as on the sheet: the middle tile rides a touch larger. */
+.hub-mod:nth-child(2) .hub-tile { width: 90px; height: 90px; border-radius: 21px; }
+/* Helmets track their tile so the trio scales as one unit. */
+.hub-tile svg { width: 58%; height: auto; }
+.hub-tile--pearl svg { width: 49%; }
+.hub-tile--violet {
+  background: linear-gradient(to top right, #695acd, #a89bf4);
+  box-shadow: 0 16px 30px rgba(105, 90, 205, 0.35), 0 3px 8px rgba(105, 90, 205, 0.2);
+}
+.hub-tile--midnight {
+  background: linear-gradient(to top right, #1f1b29, #322d3e);
+  box-shadow: 0 16px 32px rgba(27, 23, 38, 0.32), 0 3px 8px rgba(27, 23, 38, 0.18);
+}
+.hub-tile--pearl {
+  background: #fdfdff;
+  border: 1px solid #ffffff;
+  box-shadow: 0 10px 24px rgba(27, 23, 38, 0.08), 0 2px 6px rgba(27, 23, 38, 0.04);
+}
+@media (hover: hover) {
+  .hub-mod:hover .hub-tile { transform: translateY(-3px); }
+}
+.hub-mod:active .hub-tile { transform: scale(0.95); }
+.hub-mod:focus-visible { outline: none; }
+.hub-mod:focus-visible .hub-tile {
+  outline: 2.5px solid var(--accent);
+  outline-offset: 4px;
+}
+.hub-name {
+  margin-top: 27px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.hub-name-tail { color: var(--accent); }
+/* No nowrap: under WCAG 1.4.12 text-spacing overrides the labels must wrap,
+   not collide. max-width is sized so all three stay one line by default.
+   Color: see .hub-sub. */
+.hub-desc {
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #63607e;
+  width: max-content; /* natural one-line width, overflowing the 86px column */
+  max-width: 118px;   /* …until spacing overrides push it to wrap */
+  line-height: 1.35;
+}
+
+/* Entrance: one quiet rise, top to bottom. Reduced-motion is handled by the
+   global kill switch below. */
+@keyframes hub-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes hub-halo-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.hub-brand, .hub-title, .hub-sub, .hub-mod {
+  animation: hub-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.hub-title { animation-delay: 0.05s; }
+.hub-sub { animation-delay: 0.1s; }
+.hub-halo { animation: hub-halo-in 0.9s ease-out 0.1s both; }
+.hub-mod:nth-child(1) { animation-delay: 0.16s; }
+.hub-mod:nth-child(2) { animation-delay: 0.22s; }
+.hub-mod:nth-child(3) { animation-delay: 0.28s; }
+
+/* 320px reflow (small phones / 200% zoom): the trio shrinks as one unit. */
+@media (max-width: 359px) {
+  .hub-mods { gap: 16px; }
+  .hub-mod { width: 74px; }
+  .hub-tile { width: 74px; height: 74px; border-radius: 17px; }
+  .hub-mod:nth-child(2) .hub-tile { width: 78px; height: 78px; border-radius: 18px; }
+  .hub-halo { width: 226px; height: 226px; top: 56px; }
+  .hub-name { font-size: 14px; }
+  .hub-desc { font-size: 11.5px; max-width: 104px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

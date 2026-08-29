@@ -17,6 +17,9 @@ const TABS = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  // The hub ("/") is the gateway between the three experiences — it has no
+  // dock; navigation there IS the page.
+  if (pathname === "/") return <>{children}</>;
   return (
     <>
       {children}

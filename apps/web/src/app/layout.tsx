@@ -8,7 +8,6 @@ import { SessionProvider } from "@/lib/session";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://scopie.io"),
-  alternates: { canonical: "/" },
   title: { default: "Scopie", template: "%s · Scopie" },
   description: "Discover what's next, just for you. Social shopping with your AI personal shopper.",
   manifest: "/manifest.webmanifest",

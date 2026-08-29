@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Product } from "@scopie/core";
-import { Brand } from "@/components/Brand";
+import { BrandLink } from "@/components/Brand";
 import { CartButton } from "@/components/commerce/Commerce";
 import { StrokeIcon } from "@/components/Glyph";
 import { ProductCard } from "@/components/ProductCard";
@@ -42,7 +42,7 @@ export default function DiscoverPage() {
   return (
     <main className="page page--pad">
       <div className="topbar" style={{ padding: 0 }}>
-        <Brand />
+        <BrandLink />
         <CartButton />
       </div>
       <h1 className="page-title">Discover what&rsquo;s next, just for you.</h1>
