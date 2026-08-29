@@ -9,15 +9,24 @@ import { apiGet, DEMO_MODE } from "@/lib/api";
 import { demoProducts, demoVideos } from "@/lib/demo";
 
 export default function FeedPage() {
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [products, setProducts] = useState<Record<string, Product>>({});
+  // Demo data seeds synchronously — the feed must paint content, not
+  // "Loading…", on every entry to the demo site. Local posts and any real
+  // API still merge in the effect below.
+  const [videos, setVideos] = useState<Video[]>(() => (DEMO_MODE ? demoVideos : []));
+  const [products, setProducts] = useState<Record<string, Product>>(() =>
+    DEMO_MODE ? Object.fromEntries(demoProducts.map((p) => [p.id, p])) : {},
+  );
   // ?v=<id> deep link (from creator profiles) — read synchronously so the
   // feed's first render already targets the right card (an effect would let
-  // card 0 flash active and log a spurious view first).
+  // card 0 flash active and log a spurious view first). Falls back to the
+  // last watched card (VideoFeed persists it) so Back returns to the same clip.
   const [initialVideoId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     try {
-      return new URLSearchParams(window.location.search).get("v");
+      return (
+        new URLSearchParams(window.location.search).get("v") ??
+        sessionStorage.getItem("scopie_feed_at")
+      );
     } catch {
       return null;
     }

@@ -87,6 +87,12 @@ function AuthInner() {
     setStep("code");
   };
 
+  // Session still resolving, or already signed in (the effect above is about
+  // to leave): hold a stable blank frame instead of flashing the email form.
+  if (session.loading || session.userId) {
+    return <main className="page page--pad" />;
+  }
+
   const verify = async () => {
     if (busy) return;
     const token = code.trim();

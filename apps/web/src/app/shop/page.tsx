@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Product } from "@scopie/core";
+import { BrandLink } from "@/components/Brand";
+import { CartButton } from "@/components/commerce/Commerce";
 import { ProductCard } from "@/components/ProductCard";
 import { apiPost } from "@/lib/api";
 import { demoProducts } from "@/lib/demo";
@@ -85,7 +87,12 @@ export default function ShopPage() {
 
   return (
     <main className="page page--pad">
-      <div className="sec-label" style={{ marginTop: 14 }}>
+      {/* Scopping is the hub's "Cart & Orders" module — the cart lives here. */}
+      <div className="topbar" style={{ padding: 0 }}>
+        <BrandLink />
+        <CartButton />
+      </div>
+      <div className="sec-label" style={{ marginTop: 8 }}>
         AI PERSONAL SHOPPER
       </div>
       <h1 className="page-title" style={{ marginTop: 2 }}>

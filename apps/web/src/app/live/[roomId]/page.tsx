@@ -54,7 +54,13 @@ export default function LiveRoomPage() {
   // The active connect run's cancellation token — the ended-room teardown
   // must be able to cancel an in-flight connect, not just unmount cleanup.
   const cancelTokenRef = useRef<{ cancelled: boolean } | null>(null);
-  const [room, setRoom] = useState<RoomView | null | "not_found">(null);
+  /** Consecutive failed room loads — bounded so the ring can never be forever. */
+  const loadFailuresRef = useRef(0);
+  // Demo rooms resolve synchronously — seed at first render so entering a
+  // room never paints a loading ring on the demo site.
+  const [room, setRoom] = useState<RoomView | null | "not_found">(() =>
+    DEMO_MODE ? ((demoRooms.find((r) => r.id === roomId) as RoomView | undefined) ?? "not_found") : null,
+  );
   const [mode, setMode] = useState<PlaybackMode>("pending");
   const [connectAttempt, setConnectAttempt] = useState(0);
   const [messages, setMessages] = useState<ChatMsg[]>(DEMO_MODE ? DEMO_CHAT : []);
@@ -82,6 +88,7 @@ export default function LiveRoomPage() {
     if (demoReplyTimerRef.current) clearTimeout(demoReplyTimerRef.current);
     setMessages(DEMO_MODE ? DEMO_CHAT : []);
     lastChatIdRef.current = "0";
+    loadFailuresRef.current = 0;
     setDealLeft(null);
     setRoom(null);
     setMode("pending");
@@ -160,9 +167,21 @@ export default function LiveRoomPage() {
           }
           if (!res.ok) throw new Error(`room load ${res.status}`);
           view = (await res.json()) as RoomView;
+          loadFailuresRef.current = 0;
           setRoom(view);
         } catch {
           if (token.cancelled) return;
+          // Bounded: after three failed loads a configured-but-unreachable
+          // API degrades to the labeled sample loop (or the ended screen) —
+          // "everything degrades to demo" means this room too, never an
+          // infinite ring.
+          loadFailuresRef.current += 1;
+          if (loadFailuresRef.current >= 3) {
+            const sample = demoRooms.find((r) => r.id === roomId) as RoomView | undefined;
+            setRoom(sample ?? "not_found");
+            if (sample?.status === "live") setMode("hls");
+            return;
+          }
           retryTimer = setTimeout(() => {
             if (!token.cancelled) setConnectAttempt((n) => n + 1);
           }, 5000);

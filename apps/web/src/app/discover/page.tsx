@@ -13,15 +13,16 @@ import { demoProducts, formatRM } from "@/lib/demo";
 type Sort = "trending" | "foryou";
 
 export default function DiscoverPage() {
-  const [picks, setPicks] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Demo picks seed synchronously — no one-frame spinner on entry.
+  const [picks, setPicks] = useState<Product[]>(() => (DEMO_MODE ? demoProducts : []));
+  const [loading, setLoading] = useState(!DEMO_MODE);
   const [sort, setSort] = useState<Sort>("trending");
 
   useEffect(() => {
+    if (DEMO_MODE) return;
     void apiGet<Product[]>("/v1/products/picks?limit=12", demoProducts).then((p) => {
-      // Demo mode fills the grid with samples; a configured store that
-      // answers 200 [] stays honestly empty (no phantom products).
-      setPicks(DEMO_MODE && p.length === 0 ? demoProducts : p);
+      // A configured store that answers 200 [] stays honestly empty.
+      setPicks(p);
       setLoading(false);
     });
   }, []);

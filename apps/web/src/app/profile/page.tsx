@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { API_BASE, DEMO_MODE } from "@/lib/api";
+import { BrandLink } from "@/components/Brand";
 import { useCommerce } from "@/components/commerce/Commerce";
 import { Hero } from "@/components/Glyph";
 import { useCart } from "@/lib/cart";
@@ -77,7 +78,11 @@ export default function ProfilePage() {
 
   return (
     <main className="page page--pad">
-      <div className="sec-label" style={{ marginTop: 14 }}>
+      {/* Scopay's landing keeps the way back to the gateway. */}
+      <div className="topbar" style={{ padding: 0 }}>
+        <BrandLink />
+      </div>
+      <div className="sec-label" style={{ marginTop: 8 }}>
         DIGITAL IDENTITY
       </div>
       <h1 className="page-title" style={{ marginTop: 2 }}>

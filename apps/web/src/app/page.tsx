@@ -1,10 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { HelmetMark, Wordmark } from "@/components/Brand";
+import { HubIntroOnce } from "@/components/HubIntroOnce";
 
 // The layout no longer sets a canonical (it would claim every route for "/");
 // the hub is the one page that IS "/".
 export const metadata: Metadata = { alternates: { canonical: "/" } };
+// Match the Android status bar to the hub's lavender ground (top-edge ≈ #f6f5fc);
+// other routes keep the root Cloud White.
+export const viewport: Viewport = { themeColor: "#f6f5fc" };
 
 /* The gateway. Three tiles, three surfaces of one marketplace — the tile
    treatments are the three official app-icon variants from the brand sheet
@@ -39,6 +43,7 @@ const MODULES = [
 export default function Home() {
   return (
     <main className="hub-scene">
+      <HubIntroOnce />
       <div className="hub">
         {/* aria-label is prohibited naming on <p> — sr-only text instead. */}
         <p className="hub-brand">

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { Video } from "@scopie/core";
 import { Hero } from "@/components/Glyph";
-import { apiGet } from "@/lib/api";
+import { apiGet, DEMO_MODE } from "@/lib/api";
 import { demoVideos } from "@/lib/demo";
 import { isFollowing, toggleFollow } from "@/lib/social";
 
@@ -25,13 +25,20 @@ export default function CreatorPage() {
       return params.handle ?? "";
     }
   })();
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Demo clips resolve synchronously — no spinner frame on the demo site.
+  const [videos, setVideos] = useState<Video[]>(() =>
+    DEMO_MODE ? demoVideos.filter((v) => v.creatorId === handle) : [],
+  );
+  const [loading, setLoading] = useState(!DEMO_MODE);
   const [following, setFollowing] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
     setFollowing(isFollowing(handle));
+    if (DEMO_MODE) {
+      setVideos(demoVideos.filter((v) => v.creatorId === handle));
+      return;
+    }
+    setLoading(true);
     // limit=50 (the API max): the default 10 would hide lower-ranked clips
     // and fake an empty profile for real creators.
     void apiGet<Video[]>("/v1/feed?limit=50", demoVideos).then((feed) => {

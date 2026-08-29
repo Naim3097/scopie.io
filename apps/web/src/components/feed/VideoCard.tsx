@@ -73,6 +73,9 @@ export const VideoCard = memo(function VideoCard({
   const lastPosRef = useRef(-1);
   /** Position to resume from after a recovery re-attach. */
   const resumePosRef = useRef(0);
+  /** Deferred pipeline release (see the attach effect's cleanup). */
+  const detachTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingDetachRef = useRef<(() => void) | null>(null);
   const { openProduct } = useCommerce();
   const [liked, setLiked] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
@@ -126,12 +129,31 @@ export const VideoCard = memo(function VideoCard({
   }, [video.id]);
 
   // Attach media for the ACTIVE card only; release the pipeline on deactivate.
+  // The release is DEFERRED 250ms (scheduleDetach) so the outgoing card keeps
+  // its last frame through the snap animation instead of blanking to the
+  // poster while still 40% visible — but any re-attach FLUSHES the pending
+  // release first, so the one-pipeline rule never sees two live decoders
+  // beyond that brief snap window.
   useEffect(() => {
     const el = videoRef.current;
     if (!el || !active) return;
+    if (detachTimerRef.current) {
+      clearTimeout(detachTimerRef.current);
+      detachTimerRef.current = null;
+    }
+    pendingDetachRef.current?.();
+    pendingDetachRef.current = null;
     let cancelled = false;
     const resumeAt = resumePosRef.current;
     resumePosRef.current = 0;
+    const scheduleDetach = (release: () => void) => {
+      pendingDetachRef.current = release;
+      detachTimerRef.current = setTimeout(() => {
+        detachTimerRef.current = null;
+        pendingDetachRef.current = null;
+        release();
+      }, 250);
+    };
 
     // Self-hosted MP4s (and anything non-HLS) play through the element
     // directly on every browser — hls.js is only for .m3u8 streams.
@@ -151,8 +173,10 @@ export const VideoCard = memo(function VideoCard({
       return () => {
         el.removeEventListener("loadedmetadata", onLoadedMeta);
         el.removeEventListener("canplay", onCanPlay);
-        el.removeAttribute("src");
-        el.load(); // releases the decoder for the next card
+        scheduleDetach(() => {
+          el.removeAttribute("src");
+          el.load(); // releases the decoder for the next card
+        });
       };
     }
 
@@ -185,10 +209,13 @@ export const VideoCard = memo(function VideoCard({
       });
     return () => {
       cancelled = true;
-      hlsRef.current?.destroy();
+      const hls = hlsRef.current;
       hlsRef.current = null;
-      el.removeAttribute("src");
-      el.load();
+      scheduleDetach(() => {
+        hls?.destroy();
+        el.removeAttribute("src");
+        el.load();
+      });
     };
   }, [active, epoch, video.hlsUrl, attemptPlay]);
 
@@ -391,7 +418,8 @@ export const VideoCard = memo(function VideoCard({
           className="feed-action"
           onClick={() => {
             track({ type: "video.share", subjectId: video.id, surface: "feed" });
-            const url = `${window.location.origin}/feed`;
+            // Deep-link to THIS clip — the ?v= route exists for exactly this.
+            const url = `${window.location.origin}/feed?v=${encodeURIComponent(video.id)}`;
             if (navigator.share) {
               void navigator.share({ title: "Scopie", text: video.caption, url }).catch(() => undefined);
             } else {

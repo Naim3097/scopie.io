@@ -93,7 +93,7 @@ function ReturnInner() {
       icon: "clock",
       tone: "brand",
       title: "Payment processing",
-      sub: "We're waiting for your bank's confirmation — we'll reflect it in your orders shortly.",
+      sub: "We're waiting for your bank's confirmation — keep this page's link to check back any time.",
     },
     demo: {
       icon: "check",

@@ -1,5 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { Manrope } from "next/font/google";
 import "./globals.css";
+
+// Self-hosted via next/font: no render-blocking round trip to Google on
+// every cold launch, and a metric-adjusted fallback so the swap is CLS-free.
+const manrope = Manrope({ subsets: ["latin"], display: "swap", variable: "--font-manrope" });
 import { AppShell } from "@/components/AppShell";
 import { CommerceProvider } from "@/components/commerce/Commerce";
 import { PwaRegister } from "@/components/PwaRegister";
@@ -40,17 +45,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        {/* Font FILES come from gstatic — without this preconnect, the first
-            paint pays a full extra DNS+TLS round trip on mobile. */}
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
-        />
-      </head>
+    <html lang="en" className={manrope.variable}>
       <body>
         <PwaRegister />
         <SessionProvider>

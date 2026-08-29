@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StrokeIcon } from "@/components/Glyph";
 
 const FOCUSABLE = 'button, a[href], input, textarea, select, [tabindex]:not([tabindex="-1"])';
@@ -8,6 +8,8 @@ const FOCUSABLE = 'button, a[href], input, textarea, select, [tabindex]:not([tab
 /**
  * Bottom-sheet modal primitive: backdrop, drag handle, close button, ESC,
  * Tab trap, body scroll lock, focus restore. Content renders inside.
+ * Closing plays the exit animation first (close mirrors open), and the
+ * system back gesture dismisses the sheet instead of leaving the page.
  */
 export function Sheet({
   label,
@@ -19,6 +21,37 @@ export function Sheet({
   children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [closing, setClosing] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const requestClose = useCallback(() => {
+    if (closeTimerRef.current) return; // already closing
+    setClosing(true);
+    closeTimerRef.current = setTimeout(() => {
+      closeTimerRef.current = null;
+      onCloseRef.current();
+    }, 200);
+  }, []);
+
+  // One history entry per sheet: back closes the sheet, programmatic closes
+  // consume the entry so history stays balanced.
+  useEffect(() => {
+    let popped = false;
+    window.history.pushState({ scopieSheet: true }, "");
+    const onPop = () => {
+      popped = true;
+      requestClose();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      if (!popped && (window.history.state as { scopieSheet?: boolean } | null)?.scopieSheet) {
+        window.history.back();
+      }
+    };
+  }, [requestClose]);
 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -28,7 +61,7 @@ export function Sheet({
       // Cancelling an IME composition must not close the sheet and eat the draft.
       if (e.isComposing || e.keyCode === 229) return;
       if (e.key === "Escape") {
-        onClose();
+        requestClose();
         return;
       }
       if (e.key === "Tab" && ref.current) {
@@ -55,12 +88,13 @@ export function Sheet({
     return () => {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", onKey);
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
       previous?.focus?.();
     };
-  }, [onClose]);
+  }, [requestClose]);
 
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
+    <div className={`sheet-backdrop${closing ? " closing" : ""}`} onClick={requestClose}>
       <div
         ref={ref}
         className="sheet"
@@ -72,7 +106,7 @@ export function Sheet({
       >
         <div className="sheet-handle" aria-hidden="true" />
         {children}
-        <button className="sheet-close" onClick={onClose} aria-label="Close">
+        <button className="sheet-close" onClick={requestClose} aria-label="Close">
           <StrokeIcon kind="cross" size={16} />
         </button>
       </div>

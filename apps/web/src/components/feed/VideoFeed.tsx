@@ -50,6 +50,18 @@ export function VideoFeed({ videos, products, initialVideoId }: Props) {
     void import("hls.js").catch(() => undefined);
   }, []);
 
+  // Remember the watched card: the feed scrolls an internal container, so
+  // router scroll restoration can't help — Back from a creator page reads
+  // this to land on the same clip instead of restarting at the top.
+  useEffect(() => {
+    try {
+      const id = videos[activeIndex]?.id;
+      if (id) sessionStorage.setItem("scopie_feed_at", id);
+    } catch {
+      /* storage blocked — Back just lands at the top */
+    }
+  }, [activeIndex, videos]);
+
   // Deep link: the index is already seeded — this only moves the scroller.
   useEffect(() => {
     if (!initialVideoId) return;

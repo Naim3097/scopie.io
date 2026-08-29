@@ -46,10 +46,23 @@
   --nav-h: 62px;
   /* floating dock: bottom offset + height + breathing room */
   --nav-clear: 88px;
+  /* Motion tokens: press feedback and state changes share one clock each —
+     near-identical controls must not disagree on speed. */
+  --t-press: 0.12s;
+  --t-state: 0.16s;
   color-scheme: light;
 }
 
 * { box-sizing: border-box; }
+
+/* The UA tap-highlight is a border-box rectangle that ignores every radius
+   in this design — press feedback is ours (see the :active system below).
+   The property inherits, so one declaration covers the whole app. */
+html { -webkit-tap-highlight-color: transparent; }
+/* Kill the iOS double-tap-zoom wait on controls only — pinch-zoom and
+   panning stay fully available everywhere (WCAG 1.4.4 stays intact). */
+button, a, label, input, select, textarea { touch-action: manipulation; }
+button:disabled { cursor: default; }
 
 /* Visually hidden, screen-reader available. */
 .sr-only {
@@ -64,22 +77,32 @@ html, body {
   overscroll-behavior-y: contain;
   background: var(--bg);
   color: var(--ink);
-  font-family: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-manrope), "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Ambient lavender light fields — static gradients, zero per-frame cost. */
-body {
+/* Ambient lavender light fields on their own composited fixed layer —
+   background-attachment: fixed would force a gradient re-raster on every
+   scroll frame on Android. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background-image:
     radial-gradient(560px 420px at 88% -60px, rgba(148, 133, 235, 0.14), transparent 70%),
     radial-gradient(520px 420px at -60px 30%, rgba(105, 90, 205, 0.08), transparent 70%);
-  background-attachment: fixed;
 }
+/* The feed owns a dark world: the document ground must agree, or entering
+   /feed flashes white and iOS rubber-banding reveals a light halo. */
+html:has(.page--feed), body:has(.page--feed) { background: var(--graphite-deep); }
+body:has(.page--feed)::before { content: none; }
 
 h1, h2, h3 {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-manrope), "Manrope", system-ui, sans-serif;
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.15;
@@ -148,7 +171,7 @@ button { font: inherit; cursor: pointer; }
   color: var(--faint); border: none; background: none;
   padding: 11px 8px; border-radius: 999px;
   font-size: 12px; font-weight: 700; line-height: 1;
-  transition: background 0.18s ease, color 0.18s ease;
+  transition: background var(--t-state) ease, color var(--t-state) ease, transform var(--t-press) ease;
 }
 .navitem svg { width: 22px; height: 22px; flex: none; }
 .navitem .nav-label { display: none; }
@@ -157,7 +180,8 @@ button { font: inherit; cursor: pointer; }
   background: var(--accent-soft);
   padding: 11px 13px;
 }
-.navitem.active .nav-label { display: inline; }
+.navitem.active .nav-label { display: inline; animation: nav-label-in var(--t-state) ease; }
+@keyframes nav-label-in { from { opacity: 0; } }
 .navitem.active svg { stroke-width: 2.1; }
 /* The FAB link needs no pill padding of its own — the squircle IS the target. */
 .navitem.nav-create { padding: 0; }
@@ -172,6 +196,7 @@ button { font: inherit; cursor: pointer; }
   background: var(--ai-gradient);
   color: #fff;
   box-shadow: 0 6px 16px rgba(105, 90, 205, 0.45);
+  transition: transform var(--t-press) ease;
 }
 .nav-create-btn svg { width: 22px; height: 22px; }
 .nav-create:active .nav-create-btn { transform: scale(0.94); }
@@ -222,9 +247,13 @@ button { font: inherit; cursor: pointer; }
   width: 42px; height: 42px; border-radius: 50%;
   border: 3px solid rgba(255, 255, 255, 0.25);
   border-top-color: #fff;
-  animation: spin 0.9s linear infinite;
+  /* Delay-gated: a wait under 250ms never paints a spinner — sub-perceptual
+     loads must not flash. (Reduced motion swaps the ring for text below.) */
+  opacity: 0;
+  animation: spin 0.9s linear infinite, ring-appear 0.01s linear 0.25s forwards;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes ring-appear { to { opacity: 1; } }
 .live-mute {
   position: absolute; top: 12px; right: 12px; z-index: 3;
   width: 44px; height: 44px; border-radius: 50%;
@@ -302,7 +331,7 @@ button { font: inherit; cursor: pointer; }
   border: 1px solid var(--line); background: var(--surface); color: var(--muted);
   border-radius: 999px; padding: 8px 15px;
   font-size: 13px; font-weight: 700;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--t-state) ease, color var(--t-state) ease, transform var(--t-press) ease;
 }
 .chip-on { background: var(--accent); border-color: var(--accent); color: #fff; }
 
@@ -411,6 +440,11 @@ button { font: inherit; cursor: pointer; }
   outline: none;
 }
 @keyframes sheet-up { from { transform: translateY(48px); opacity: 0.6; } }
+/* Close mirrors open — sheets must never vanish in a single frame. */
+.sheet-backdrop.closing { animation: backdrop-out var(--t-state) ease forwards; }
+.sheet-backdrop.closing .sheet { animation: sheet-down 0.18s ease forwards; }
+@keyframes backdrop-out { to { opacity: 0; } }
+@keyframes sheet-down { to { transform: translateY(48px); opacity: 0; } }
 .sheet-handle {
   width: 40px; height: 4px; border-radius: 999px;
   background: var(--line-strong);
@@ -571,6 +605,34 @@ button { font: inherit; cursor: pointer; }
 }
 .btn-ghost:active { transform: scale(0.97); }
 
+/* ── the press system ──
+   Apple-subtle feedback on every tappable, one clock (--t-press), transform/
+   opacity only (compositor-safe). Small round targets dip harder than large
+   cards; text targets dim instead of moving. .tap-to-play gets nothing — a
+   full-screen scale reads as a glitch. */
+.sheet-close, .cart-remove, .cart-btn, .live-mute, .qty-stepper button,
+.card-tap, .live-tile, .creator-tile, .searchbar, .ai-suggest,
+.feed-product, .feed-action .icon, .sheet-link, .feed-creator,
+.feed-brand, .brand {
+  transition: transform var(--t-press) ease, opacity var(--t-press) ease;
+}
+.chip:active, .tab:active, .sheet-close:active, .cart-remove:active,
+.cart-btn:active, .live-mute:active, .qty-stepper button:active,
+.navitem:active:not(.nav-create) { transform: scale(0.94); }
+.card-tap:active, .live-tile:active, .creator-tile:active,
+.searchbar:active, .ai-suggest:active, .feed-product:active {
+  transform: scale(0.98); opacity: 0.92;
+}
+.feed-action:active .icon { transform: scale(0.9); }
+.sheet-link:active, a.feed-creator:active, .feed-brand:active, a.brand:active { opacity: 0.55; }
+/* App chrome is not prose: no long-press selection or iOS link callout. */
+.navitem, .hub-mod, .chip, .tab, .btn, .searchbar, .ai-suggest, .live-tile,
+.creator-tile, .feed-action, .feed-product, .feed-creator, .feed-brand,
+.brand, .sheet-link, .sheet-close, .cart-btn, .cart-remove, .live-mute,
+.qty-stepper button {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+
 /* ── live ── */
 .live-badge {
   display: inline-flex; align-items: center; gap: 6px;
@@ -680,7 +742,7 @@ input.auth-input { border-radius: 999px; padding: 13px 18px; }
   border: 1px solid var(--line); background: var(--surface);
   padding: 8px 16px; border-radius: 999px;
   font-size: 13.5px; font-weight: 700; color: var(--muted);
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--t-state) ease, color var(--t-state) ease, transform var(--t-press) ease;
 }
 .tab-active {
   color: #fff; background: var(--accent); border-color: var(--accent);
@@ -792,7 +854,6 @@ input.auth-input { border-radius: 999px; padding: 13px 18px; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  -webkit-tap-highlight-color: transparent;
 }
 .hub-tile {
   width: 86px;
@@ -800,7 +861,7 @@ input.auth-input { border-radius: 999px; padding: 13px 18px; }
   border-radius: 20px; /* ~23% — the iOS app-icon ratio, as on the sheet */
   display: grid;
   place-items: center;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: transform var(--t-press) ease;
 }
 /* Center emphasis, as on the sheet: the middle tile rides a touch larger. */
 .hub-mod:nth-child(2) .hub-tile { width: 90px; height: 90px; border-radius: 21px; }
@@ -820,10 +881,13 @@ input.auth-input { border-radius: 999px; padding: 13px 18px; }
   border: 1px solid #ffffff;
   box-shadow: 0 10px 24px rgba(27, 23, 38, 0.08), 0 2px 6px rgba(27, 23, 38, 0.04);
 }
+.hub-mod:active .hub-tile { transform: scale(0.95); }
 @media (hover: hover) {
   .hub-mod:hover .hub-tile { transform: translateY(-3px); }
+  /* Press composes with the hover lift — otherwise the tile drops 3px AND
+     scales in the same frame. */
+  .hub-mod:active .hub-tile { transform: translateY(-3px) scale(0.95); }
 }
-.hub-mod:active .hub-tile { transform: scale(0.95); }
 .hub-mod:focus-visible { outline: none; }
 .hub-mod:focus-visible .hub-tile {
   outline: 2.5px solid var(--accent);
@@ -870,6 +934,18 @@ input.auth-input { border-radius: 999px; padding: 13px 18px; }
 .hub-mod:nth-child(1) { animation-delay: 0.16s; }
 .hub-mod:nth-child(2) { animation-delay: 0.22s; }
 .hub-mod:nth-child(3) { animation-delay: 0.28s; }
+/* The intro plays once per session (HubIntroOnce sets html.hub-seen) —
+   replaying it on every return reads as a reload, not a navigation. */
+html.hub-seen .hub-brand, html.hub-seen .hub-title, html.hub-seen .hub-sub,
+html.hub-seen .hub-mod, html.hub-seen .hub-halo { animation: none; }
+
+/* ── route transitions (template.tsx) ──
+   One quiet enter for every navigation. Starts at 0.85, not 0 — a
+   transparent first frame would flash the light ground behind the dark feed. */
+.route-frame { animation: route-in 0.15s ease-out; }
+@keyframes route-in {
+  from { opacity: 0.85; transform: translateY(4px); }
+}
 
 /* 320px reflow (small phones / 200% zoom): the trio shrinks as one unit. */
 @media (max-width: 359px) {

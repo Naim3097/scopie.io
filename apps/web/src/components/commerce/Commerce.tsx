@@ -55,29 +55,84 @@ const FOCUSABLE = 'button, a[href], input, textarea, select, [tabindex]:not([tab
 
 export function CommerceProvider({ children }: { children: React.ReactNode }) {
   const [sheet, setSheet] = useState<SheetState>(null);
+  const [closing, setClosing] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const cart = useCart();
   const pathname = usePathname();
 
-  const openProduct = useCallback((product: Product, surface: Surface) => {
-    track({ type: "product.view", subjectId: product.id, surface, meta: { sheet: true } });
-    setSheet({ kind: "product", product, surface });
+  const openSheet = useCallback((next: NonNullable<SheetState>) => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setClosing(false);
+    setSheet(next);
   }, []);
 
-  const openCart = useCallback(() => setSheet({ kind: "cart" }), []);
+  const openProduct = useCallback(
+    (product: Product, surface: Surface) => {
+      track({ type: "product.view", subjectId: product.id, surface, meta: { sheet: true } });
+      openSheet({ kind: "product", product, surface });
+    },
+    [openSheet],
+  );
 
-  const buyNow = useCallback((product: Product, surface: Surface) => {
-    track({ type: "product.view", subjectId: product.id, surface, meta: { buyNow: true } });
-    setSheet({ kind: "checkout", items: [{ product, qty: 1 }], from: "direct" });
+  const openCart = useCallback(() => openSheet({ kind: "cart" }), [openSheet]);
+
+  const buyNow = useCallback(
+    (product: Product, surface: Surface) => {
+      track({ type: "product.view", subjectId: product.id, surface, meta: { buyNow: true } });
+      openSheet({ kind: "checkout", items: [{ product, qty: 1 }], from: "direct" });
+    },
+    [openSheet],
+  );
+
+  // Close mirrors open: play the exit (200ms covers both keyframes), THEN
+  // unmount — sheets must never vanish in a single frame.
+  const close = useCallback(() => {
+    if (closeTimerRef.current) return; // already closing
+    setClosing(true);
+    closeTimerRef.current = setTimeout(() => {
+      closeTimerRef.current = null;
+      setClosing(false);
+      setSheet(null);
+    }, 200);
   }, []);
 
-  const close = useCallback(() => setSheet(null), []);
-
-  // Navigating anywhere closes any open sheet — a sign-in page must never
-  // render underneath a modal, and browser Back should not strand one.
+  // Navigating anywhere closes any open sheet instantly — a sign-in page
+  // must never render underneath a modal.
   useEffect(() => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setClosing(false);
     setSheet(null);
   }, [pathname]);
+
+  // The system back gesture closes an open sheet instead of leaving the page
+  // — the strongest "real app" tell on Android. One history entry per sheet
+  // session; programmatic closes consume it, so history stays balanced.
+  const sheetOpen = sheet !== null;
+  useEffect(() => {
+    if (!sheetOpen) return;
+    let popped = false;
+    window.history.pushState({ scopieSheet: true }, "");
+    const onPop = () => {
+      popped = true;
+      close();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      // Only unwind OUR entry — after a route change the top of the stack
+      // belongs to the router, and going back would undo the navigation.
+      if (!popped && (window.history.state as { scopieSheet?: boolean } | null)?.scopieSheet) {
+        window.history.back();
+      }
+    };
+  }, [sheetOpen, close]);
 
   // Scroll lock + ESC + focus + a Tab trap while any sheet is open —
   // aria-modal promises the background is inert, so the keyboard must agree.
@@ -126,7 +181,7 @@ export function CommerceProvider({ children }: { children: React.ReactNode }) {
     <CommerceContext.Provider value={api}>
       {children}
       {sheet && (
-        <div className="sheet-backdrop" onClick={close}>
+        <div className={`sheet-backdrop${closing ? " closing" : ""}`} onClick={close}>
           <div
             ref={sheetRef}
             className="sheet"
@@ -382,8 +437,9 @@ function CheckoutSheet({
 
     if (DEMO_MODE) {
       // The cart clears on the return page (from_cart=1) — never before the
-      // success screen actually exists.
-      window.location.href = `/pay/return?demo_paid=1&order=${orderId}${fromCart ? "&from_cart=1" : ""}`;
+      // success screen actually exists. Client navigation: a full document
+      // reload at the payment moment is the most jarring cut in the app.
+      router.push(`/pay/return?demo_paid=1&order=${orderId}${fromCart ? "&from_cart=1" : ""}`);
       return;
     }
     try {

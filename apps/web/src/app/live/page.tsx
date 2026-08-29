@@ -3,16 +3,21 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { LiveRoom } from "@scopie/core";
-import { apiGet } from "@/lib/api";
+import { BrandLink } from "@/components/Brand";
+import { CartButton } from "@/components/commerce/Commerce";
+import { apiGet, DEMO_MODE } from "@/lib/api";
 import { demoRooms } from "@/lib/demo";
 
 const THUMBS = ["/posters/poster-a.png", "/posters/poster-b.png"];
 
 export default function LiveListPage() {
-  const [rooms, setRooms] = useState<LiveRoom[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Demo data is synchronous — seeding it at first render means no loader
+  // frame ever paints on the demo site.
+  const [rooms, setRooms] = useState<LiveRoom[]>(() => (DEMO_MODE ? demoRooms : []));
+  const [loading, setLoading] = useState(!DEMO_MODE);
 
   useEffect(() => {
+    if (DEMO_MODE) return;
     void apiGet<LiveRoom[]>("/v1/live/rooms", demoRooms).then((r) => {
       setRooms(r.length > 0 ? r : demoRooms);
       setLoading(false);
@@ -21,7 +26,11 @@ export default function LiveListPage() {
 
   return (
     <main className="page page--pad">
-      <div className="sec-label" style={{ marginTop: 14 }}>
+      <div className="topbar" style={{ padding: 0 }}>
+        <BrandLink />
+        <CartButton />
+      </div>
+      <div className="sec-label" style={{ marginTop: 8 }}>
         LIVE SHOPPING
       </div>
       <h1 className="page-title" style={{ marginTop: 2 }}>
