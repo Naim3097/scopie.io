@@ -174,32 +174,6 @@ button { font: inherit; cursor: pointer; }
   transition: background var(--t-state) ease, color var(--t-state) ease, transform var(--t-press) ease;
 }
 .navitem svg { width: 22px; height: 22px; flex: none; }
-.navitem .nav-label { display: none; }
-.navitem.active {
-  color: var(--accent);
-  background: var(--accent-soft);
-  padding: 11px 13px;
-}
-.navitem.active .nav-label { display: inline; animation: nav-label-in var(--t-state) ease; }
-@keyframes nav-label-in { from { opacity: 0; } }
-.navitem.active svg { stroke-width: 2.1; }
-/* The FAB link needs no pill padding of its own — the squircle IS the target. */
-.navitem.nav-create { padding: 0; }
-/* 320px reflow (200% zoom): the active label no longer fits — icons only. */
-@media (max-width: 359px) {
-  .navitem.active .nav-label { display: none; }
-  .navitem.active { padding: 11px 8px; }
-}
-.nav-create-btn {
-  display: grid; place-items: center;
-  width: 45px; height: 45px; border-radius: 16px;
-  background: var(--ai-gradient);
-  color: #fff;
-  box-shadow: 0 6px 16px rgba(105, 90, 205, 0.45);
-  transition: transform var(--t-press) ease;
-}
-.nav-create-btn svg { width: 22px; height: 22px; }
-.nav-create:active .nav-create-btn { transform: scale(0.94); }
 
 .upload-bar {
   height: 8px; border-radius: 999px; background: var(--surface-2);
@@ -618,7 +592,7 @@ button { font: inherit; cursor: pointer; }
 }
 .chip:active, .tab:active, .sheet-close:active, .cart-remove:active,
 .cart-btn:active, .live-mute:active, .qty-stepper button:active,
-.navitem:active:not(.nav-create) { transform: scale(0.94); }
+.navitem:active:not(.nav-orb) { transform: scale(0.94); }
 .card-tap:active, .live-tile:active, .creator-tile:active,
 .searchbar:active, .ai-suggest:active, .feed-product:active {
   transform: scale(0.98); opacity: 0.92;
@@ -934,10 +908,28 @@ input.auth-input { border-radius: 999px; padding: 13px 18px; }
 .hub-mod:nth-child(1) { animation-delay: 0.16s; }
 .hub-mod:nth-child(2) { animation-delay: 0.22s; }
 .hub-mod:nth-child(3) { animation-delay: 0.28s; }
-/* The intro plays once per session (HubIntroOnce sets html.hub-seen) —
-   replaying it on every return reads as a reload, not a navigation. */
-html.hub-seen .hub-brand, html.hub-seen .hub-title, html.hub-seen .hub-sub,
-html.hub-seen .hub-mod, html.hub-seen .hub-halo { animation: none; }
+
+/* ── the welcome gate ──
+   The brand-sheet gateway, shown once ever. Whether it shows is decided
+   BEFORE first paint (an inline script sets html.welcome), so neither the
+   gate nor the surface ever flashes. */
+.welcome-gate {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  overflow-y: auto;
+  background: #f4f3fb;
+}
+html.welcome .welcome-gate { display: block; }
+/* The tiles are buttons now — strip the button chrome, keep the tile. */
+button.hub-mod {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
 
 /* ── route transitions (template.tsx) ──
    One quiet enter for every navigation. Starts at 0.85, not 0 — a
@@ -946,6 +938,139 @@ html.hub-seen .hub-mod, html.hub-seen .hub-halo { animation: none; }
 @keyframes route-in {
   from { opacity: 0.85; transform: translateY(4px); }
 }
+
+/* ── panels (the overlays that replaced pages) ──
+   Full-screen surfaces over the feed: slide up, slide down, one at a time.
+   Sheets (z-80) stack above them, the welcome gate (z-90) above everything. */
+.panel {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  animation: panel-up 0.24s cubic-bezier(0.2, 0.9, 0.3, 1);
+  outline: none;
+}
+.panel.closing { animation: panel-down 0.18s ease forwards; }
+@keyframes panel-up { from { transform: translateY(28px); opacity: 0.5; } }
+@keyframes panel-down { to { transform: translateY(28px); opacity: 0; } }
+.panel-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  padding: calc(12px + env(safe-area-inset-top)) 16px 8px;
+}
+.panel-title { flex: 1; font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+.panel-right { display: inline-flex; align-items: center; }
+.panel-close {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--t-press) ease;
+}
+.panel-close:active { transform: scale(0.92); }
+.panel-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.panel-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.panel-pad {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 20px calc(24px + env(safe-area-inset-bottom));
+}
+
+/* ── surface dock ──
+   No destinations, only overlays — and the scopie orb at the center:
+   the AI is the middle of the app. */
+.nav-orb { padding: 0; }
+.dock-orb {
+  display: grid;
+  place-items: center;
+  width: 47px;
+  height: 47px;
+  border-radius: 50%;
+  background: var(--ai-gradient);
+  box-shadow: 0 6px 16px rgba(105, 90, 205, 0.45);
+  transition: transform var(--t-press) ease;
+}
+.nav-orb:active .dock-orb { transform: scale(0.94); }
+.dock-bag { position: relative; display: inline-flex; }
+.dock-bag .cart-count { top: -7px; right: -9px; }
+
+/* ── live cards in the feed ── */
+.live-card {
+  position: absolute;
+  inset: 0;
+  display: block;
+  color: #fff;
+}
+.live-card-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.live-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(27, 23, 38, 0.82) 0%, transparent 45%),
+    linear-gradient(to bottom, rgba(27, 23, 38, 0.45) 0%, transparent 22%);
+}
+.live-card-top {
+  position: absolute;
+  z-index: 1;
+  top: calc(14px + env(safe-area-inset-top));
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.live-card-viewers {
+  background: rgba(27, 23, 38, 0.55);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 4px 11px;
+}
+.live-card-info {
+  position: absolute;
+  z-index: 1;
+  left: 18px;
+  right: 18px;
+  bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.live-card-info b { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45); }
+.live-card-cta {
+  background: #fff;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 10px 20px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+.live-card:active .live-card-cta { transform: scale(0.96); }
 
 /* 320px reflow (small phones / 200% zoom): the trio shrinks as one unit. */
 @media (max-width: 359px) {

@@ -55,7 +55,7 @@ function AuthInner() {
           Accounts open with the full launch — everything works in guest mode for now, and your activity stays on
           this device.
         </p>
-        <Link href="/feed" className="btn btn-primary" style={{ width: "auto" }}>
+        <Link href="/" className="btn btn-primary" style={{ width: "auto" }}>
           Keep browsing
         </Link>
       </main>

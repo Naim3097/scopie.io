@@ -11,7 +11,8 @@ Full research behind these choices: see the published stack report
 ```
                        ┌────────────────────────────────────────────┐
                        │        apps/web · Next.js PWA (scopie.io)  │
-                       │  Feed · Discover · Live · To Shop · Profile│
+                       │   ONE SURFACE: the feed — everything else  │
+                       │   is an overlay (see "One surface" below)  │
                        └──────┬──────────────────────┬──────────────┘
                               │ REST                 │ WebRTC/HLS
                     ┌─────────▼─────────┐   ┌────────▼────────┐
@@ -35,6 +36,32 @@ Full research behind these choices: see the published stack report
               │  LeanX adapter    │  ← white-label: invisible to the client
               └──────────────────┘
 ```
+
+## One surface (Sep 2026)
+
+The client is ONE primary surface — the vertical feed at `/` (clips and live
+rooms woven into the same scroller) — with everything else an overlay on top
+of it, never a navigation away. This follows the evidence (TikTok Shop SEA
+$45.6B GMV '25 with commerce inside content; Whatnot's single live surface
+at a $20B valuation; Instagram removing its Shop tab), with one discipline
+the same evidence demands: density kills conversion, so overlays appear
+contextually, one at a time.
+
+- **Overlay families** (`components/surface/`): Ask Scopie (the AI shopper —
+  the intent path; Douyin's rising "shelf" share says feed discovery alone
+  isn't enough, and ours is conversational), Search/Discover, Create
+  (upload-first; capture-first waits for the native shell), Profile/Scopay,
+  and the commerce sheets (product → cart → Scopie Pay). The dock carries no
+  destinations — five overlay triggers with the scopie orb at center.
+- **Real routes** that remain: `/live/[roomId]` (a live room is a document
+  you can share; phase 2 makes it the full mock surface), `/sell` + `/studio`
+  (seller tools), `/auth`, `/pay/return` (gateways redirect to URLs),
+  `/c/[handle]` (shareable creator page). Old surface routes (`/feed`,
+  `/discover`, `/shop`, `/live`, `/profile`, `/create`) 307-redirect into the
+  surface with `?panel=` so every old link and stale PWA install lands right.
+- **The gateway** ("Three ways to experience Scopie") is the once-ever
+  welcome gate — a brand moment, not a destination. Its three tiles enter
+  the surface with the matching overlay.
 
 ## Identity (Phase 1 — delivered)
 

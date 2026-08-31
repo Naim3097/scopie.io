@@ -118,8 +118,8 @@ function ReturnInner() {
   const backHref =
     state === "signin" && orderId
       ? `/auth?next=${encodeURIComponent(`/pay/return?order=${orderId}`)}`
-      : "/discover";
-  const backLabel = state === "signin" ? "Sign in" : "Back to Discover";
+      : "/";
+  const backLabel = state === "signin" ? "Sign in" : "Back to Scopie";
 
   return (
     <main className="page page--pad" style={{ textAlign: "center", paddingTop: 80 }}>

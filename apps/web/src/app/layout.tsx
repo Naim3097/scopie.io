@@ -1,15 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
-
-// Self-hosted via next/font: no render-blocking round trip to Google on
-// every cold launch, and a metric-adjusted fallback so the swap is CLS-free.
-const manrope = Manrope({ subsets: ["latin"], display: "swap", variable: "--font-manrope" });
-import { AppShell } from "@/components/AppShell";
 import { CommerceProvider } from "@/components/commerce/Commerce";
 import { PwaRegister } from "@/components/PwaRegister";
 import { CartProvider } from "@/lib/cart";
 import { SessionProvider } from "@/lib/session";
+
+// Self-hosted via next/font: no render-blocking round trip to Google on
+// every cold launch, and a metric-adjusted fallback so the swap is CLS-free.
+const manrope = Manrope({ subsets: ["latin"], display: "swap", variable: "--font-manrope" });
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://scopie.io"),
@@ -50,9 +49,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PwaRegister />
         <SessionProvider>
           <CartProvider>
-            <CommerceProvider>
-              <AppShell>{children}</AppShell>
-            </CommerceProvider>
+            {/* No app shell: "/" is the one surface and carries its own
+                chrome; the remaining routes are documents with their own
+                back paths. */}
+            <CommerceProvider>{children}</CommerceProvider>
           </CartProvider>
         </SessionProvider>
       </body>

@@ -419,7 +419,7 @@ export const VideoCard = memo(function VideoCard({
           onClick={() => {
             track({ type: "video.share", subjectId: video.id, surface: "feed" });
             // Deep-link to THIS clip — the ?v= route exists for exactly this.
-            const url = `${window.location.origin}/feed?v=${encodeURIComponent(video.id)}`;
+            const url = `${window.location.origin}/?v=${encodeURIComponent(video.id)}`;
             if (navigator.share) {
               void navigator.share({ title: "Scopie", text: video.caption, url }).catch(() => undefined);
             } else {

@@ -445,8 +445,8 @@ export default function LiveRoomPage() {
         <Hero kind="tv" />
         <h1 className="page-title">This live has ended</h1>
         <p className="page-sub">The stream you're looking for isn't running any more.</p>
-        <Link href="/live" className="btn btn-ghost">
-          See who's live now
+        <Link href="/" className="btn btn-ghost">
+          Back to the feed
         </Link>
       </main>
     );
@@ -458,8 +458,8 @@ export default function LiveRoomPage() {
         <Hero kind="smile" />
         <h1 className="page-title">The stream just ended</h1>
         <p className="page-sub">Thanks for watching {room.title}.</p>
-        <Link href="/live" className="btn btn-primary" style={{ width: "auto" }}>
-          See who&rsquo;s live now
+        <Link href="/" className="btn btn-primary" style={{ width: "auto" }}>
+          Back to the feed
         </Link>
       </main>
     );

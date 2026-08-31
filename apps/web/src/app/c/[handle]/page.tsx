@@ -62,7 +62,7 @@ export default function CreatorPage() {
         <Hero kind="user" />
         <h1 className="page-title">@{handle}</h1>
         <p className="page-sub">This creator hasn&rsquo;t posted yet — check back soon.</p>
-        <Link href="/feed" className="btn btn-primary" style={{ width: "auto" }}>
+        <Link href="/" className="btn btn-primary" style={{ width: "auto" }}>
           Back to the feed
         </Link>
       </main>
@@ -101,7 +101,7 @@ export default function CreatorPage() {
       ) : (
         <div className="creator-grid">
           {videos.map((v) => (
-            <Link key={v.id} href={`/feed?v=${encodeURIComponent(v.id)}`} className="creator-tile" aria-label={`Play: ${v.caption || "video"}`}>
+            <Link key={v.id} href={`/?v=${encodeURIComponent(v.id)}`} className="creator-tile" aria-label={`Play: ${v.caption || "video"}`}>
               {v.posterUrl && <img src={v.posterUrl} alt="" />}
               <span className="creator-tile-meta">
                 <span aria-hidden="true">♥</span> {compact.format(v.stats.likes ?? 0)}
