@@ -51,8 +51,12 @@ contextually, one at a time.
   the intent path; Douyin's rising "shelf" share says feed discovery alone
   isn't enough, and ours is conversational), Search/Discover, Create
   (upload-first; capture-first waits for the native shell), Profile/Scopay,
-  and the commerce sheets (product → cart → Scopie Pay). The dock carries no
-  destinations — five overlay triggers with the scopie orb at center.
+  and the commerce sheets (product → cart → Scopie Pay). Navigation is THE
+  QUARTER: a corner orb (bottom-right, thumb-native) that fans two arcs —
+  utilities inner, the three module tiles outer (Path-fan lineage, MUI
+  SpeedDial 30ms cascade, M3 emphasized easing; see components/surface/
+  CornerNav.tsx). No dock, no tabs; liveness is a violet pulse and the
+  helmet chip is the AI-host disclosure (full text in accessible names).
 - **Real routes** that remain: `/live/[roomId]` (a live room is a document
   you can share; phase 2 makes it the full mock surface), `/sell` + `/studio`
   (seller tools), `/auth`, `/pay/return` (gateways redirect to URLs),

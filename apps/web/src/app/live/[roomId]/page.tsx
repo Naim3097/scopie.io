@@ -523,15 +523,11 @@ export default function LiveRoomPage() {
           <span className="sr-only">Scopie home</span>
         </Link>
         <span className="ls-top-right">
-          {/* The badge asserts liveness — never show it before the room loads. */}
-          {isLive && (
-            <span className="live-badge">
-              <span aria-hidden="true">●</span> LIVE
-            </span>
-          )}
-          {room && (
-            <span className="ls-viewers">
-              <span aria-hidden="true">✦</span> {compact.format(room.viewerCount)} watching
+          {/* The chip asserts liveness — never show it before the room loads. */}
+          {isLive && room && (
+            <span className="live-chip" aria-label={`Live, ${room.viewerCount} watching`}>
+              <span className="dot" aria-hidden="true" />
+              Live · {compact.format(room.viewerCount)}
             </span>
           )}
         </span>
@@ -543,8 +539,9 @@ export default function LiveRoomPage() {
           <b>{room ? room.title : "Scopie Live"}</b>
           <span className="ls-host-sub">
             {room?.hostType === "ai" && (
-              <span className="ai-badge" title="This host is an AI avatar">
-                <span aria-hidden="true">✦</span> AI Host
+              <span className="scopie-chip" aria-label="Hosted by Scopie AI — always disclosed">
+                <HelmetMark size={15} />
+                scopie
               </span>
             )}
             {sampleFallback && <span className="stage-tag ls-sample">Sample preview — live video unavailable</span>}

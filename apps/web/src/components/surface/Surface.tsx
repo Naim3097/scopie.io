@@ -8,11 +8,11 @@ import { VideoFeed, type FeedEntry } from "@/components/feed/VideoFeed";
 import { apiGet, DEMO_MODE } from "@/lib/api";
 import { demoProducts, demoRooms, demoVideos } from "@/lib/demo";
 import { AskScopie } from "./AskScopie";
+import { CornerNav, type PanelKind } from "./CornerNav";
 import { CreatePanel } from "./CreatePanel";
 import { Panel } from "./Panel";
 import { ProfilePanel } from "./ProfilePanel";
 import { SearchPanel } from "./SearchPanel";
-import { SurfaceDock, type PanelKind } from "./SurfaceDock";
 import { WelcomeGate } from "./WelcomeGate";
 
 // Real content frames, not abstract art — a live card must look alive.
@@ -159,7 +159,7 @@ export function Surface() {
         )}
       </main>
 
-      <SurfaceDock onOpen={setPanel} />
+      <CornerNav onOpen={setPanel} />
 
       {panel && (
         <Panel

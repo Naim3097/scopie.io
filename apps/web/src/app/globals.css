@@ -147,34 +147,122 @@ button { font: inherit; cursor: pointer; }
   color: transparent;
 }
 
-/* ── floating bottom dock ── */
-.bottomnav {
-  position: fixed; left: 0; right: 0; z-index: 50;
-  bottom: calc(12px + env(safe-area-inset-bottom));
-  padding: 0 14px;
-  pointer-events: none; /* the pill itself re-enables */
+/* ── the quarter (corner navigation) ──
+   All of Scopie's navigation lives in one bottom-right quarter-circle: a
+   thumb-native orb that blooms two arcs — utilities inner, the three module
+   identities outer. The rest of the screen belongs to content. */
+.corner { position: fixed; right: 0; bottom: 0; z-index: 60; }
+.corner-scrim {
+  position: fixed; inset: 0;
+  border: none; padding: 0; cursor: default;
+  background: radial-gradient(580px 580px at 100% 100%, rgba(27, 23, 38, 0.7), rgba(27, 23, 38, 0.3) 55%, rgba(27, 23, 38, 0.08) 100%);
+  animation: corner-scrim-in 0.2s ease;
 }
-.bottomnav-in {
+@keyframes corner-scrim-in { from { opacity: 0; } }
+.corner-orb {
+  position: relative; display: block;
+  width: 86px;
+  height: calc(86px + env(safe-area-inset-bottom));
+  border: none; padding: 0;
+  border-top-left-radius: 100%;
+  background: var(--ai-gradient);
+  box-shadow: -4px -4px 20px rgba(105, 90, 205, 0.45);
+  color: #fff;
+  transition: transform var(--t-press) ease;
+  transform-origin: bottom right;
+}
+.corner-orb:active { transform: scale(0.95); }
+.corner-orb:focus-visible { outline: 2.5px solid #fff; outline-offset: 3px; }
+.corner-orb-mark {
+  position: absolute;
+  right: 15px;
+  bottom: calc(15px + env(safe-area-inset-bottom));
+  display: block;
+  transition: transform 0.26s cubic-bezier(0.34, 1.45, 0.55, 1);
+}
+.corner--open .corner-orb-mark { transform: rotate(-10deg) scale(1.06); }
+.corner-count {
+  position: absolute;
+  top: 16px; left: 16px;
+  background: #fff; color: var(--accent);
+}
+.corner-fan {
+  position: fixed;
+  right: 26px;
+  bottom: calc(26px + env(safe-area-inset-bottom));
+  width: 0; height: 0;
+}
+/* Motion lineage: Path's fan (translate + concurrent spin + overshoot),
+   MUI SpeedDial's 30ms cascade, M3 emphasized-accelerate on the way home.
+   Close is faster than open, per the Material duration rule. */
+.corner-item {
+  position: absolute; right: 0; bottom: 0;
+  border: none; padding: 0;
+  display: grid; place-items: center;
+  transform: translate(50%, 50%) scale(0.3) rotate(70deg);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.19s cubic-bezier(0.3, 0, 0.8, 0.15), opacity 0.14s ease;
+}
+.corner--open .corner-item {
+  transform: translate(calc(var(--tx) + 50%), calc(var(--ty) + 50%)) scale(1) rotate(0deg);
+  opacity: 1;
   pointer-events: auto;
-  max-width: 440px; margin: 0 auto; height: var(--nav-h);
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 12px;
-  background: var(--surface-glass);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  border-radius: 31px;
-  box-shadow: 0 10px 32px rgba(27, 23, 38, 0.14), 0 2px 8px rgba(105, 90, 205, 0.10);
+  transition: transform 0.3s cubic-bezier(0.34, 1.45, 0.55, 1), opacity 0.16s ease;
 }
-.navitem {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  flex: none;
-  color: var(--faint); border: none; background: none;
-  padding: 11px 8px; border-radius: 999px;
-  font-size: 12px; font-weight: 700; line-height: 1;
-  transition: background var(--t-state) ease, color var(--t-state) ease, transform var(--t-press) ease;
+.corner--open .corner-item:active {
+  transform: translate(calc(var(--tx) + 50%), calc(var(--ty) + 50%)) scale(0.9) rotate(0deg);
 }
-.navitem svg { width: 22px; height: 22px; flex: none; }
+.corner-item:focus-visible { outline: 2.5px solid #fff; outline-offset: 3px; }
+.corner-glyph {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.96); color: var(--ink);
+  box-shadow: 0 6px 18px rgba(27, 23, 38, 0.3);
+}
+.corner-glyph--spark { color: var(--accent); }
+.corner-mod {
+  width: 54px; height: 54px;
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(27, 23, 38, 0.35);
+}
+.corner-name {
+  position: absolute;
+  right: calc(100% + 10px); top: 50%;
+  transform: translateY(-50%);
+  color: #fff; font-size: 11.5px; font-weight: 800; letter-spacing: 0.02em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease 0.14s;
+}
+.corner--open .corner-name { opacity: 1; }
+
+/* ── liveness & AI identity, the quiet way ──
+   No red badges, no "AI HOST" stamps: a violet pulse says live, the helmet
+   says Scopie's AI (full disclosure carried in the accessible name). */
+.live-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(27, 23, 38, 0.55); color: #fff;
+  font-size: 12px; font-weight: 700;
+  border-radius: 999px; padding: 5px 12px;
+  white-space: nowrap;
+}
+.live-chip .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent-2);
+  animation: live-pulse 1.8s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.72); }
+}
+.scopie-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255, 255, 255, 0.92); color: var(--accent);
+  font-size: 11.5px; font-weight: 800; letter-spacing: 0.01em;
+  border-radius: 999px; padding: 4px 11px;
+  white-space: nowrap;
+}
 
 .upload-bar {
   height: 8px; border-radius: 999px; background: var(--surface-2);
@@ -186,12 +274,12 @@ button { font: inherit; cursor: pointer; }
   transition: width 0.2s ease;
 }
 
-/* ── vertical video feed ── */
+/* ── vertical video feed ──
+   Full-bleed: the video owns the whole screen; the only chrome is the
+   corner quarter floating over it. */
 .feed {
-  /* vh fallback first, then dvh; the floating dock needs its clearance —
-     the video column must not run beneath the pill. */
-  height: calc(100vh - var(--nav-clear));
-  height: calc(100dvh - var(--nav-clear) - env(safe-area-inset-bottom));
+  height: 100vh; /* dvh fallback */
+  height: 100dvh;
   overflow-y: scroll;
   overscroll-behavior-y: contain; /* swipe-down on card 0 must not pull-to-refresh */
   scroll-snap-type: y mandatory;
@@ -200,8 +288,8 @@ button { font: inherit; cursor: pointer; }
 .feed::-webkit-scrollbar { display: none; }
 .feed-item {
   position: relative;
-  height: calc(100vh - var(--nav-clear));
-  height: calc(100dvh - var(--nav-clear) - env(safe-area-inset-bottom));
+  height: 100vh; /* dvh fallback */
+  height: 100dvh;
   scroll-snap-align: start;
   scroll-snap-stop: always;
   background: var(--graphite-deep);
@@ -243,6 +331,9 @@ button { font: inherit; cursor: pointer; }
   position: absolute; inset: 0;
   display: flex; flex-direction: column; justify-content: flex-end;
   padding: 18px;
+  /* clear the corner quarter + the home indicator */
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  padding-right: 96px;
   background: linear-gradient(to top, rgba(27, 23, 38, 0.75) 0%, transparent 38%);
   color: #fff;
 }
@@ -250,7 +341,8 @@ button { font: inherit; cursor: pointer; }
 .feed-creator { font-weight: 700; font-size: 15px; width: fit-content; }
 .feed-tags { color: #cdc9f5; font-size: 13px; }
 .feed-actions {
-  position: absolute; right: 10px; bottom: 96px;
+  position: absolute; right: 10px;
+  bottom: calc(128px + env(safe-area-inset-bottom)); /* above the quarter */
   display: flex; flex-direction: column; gap: 16px; align-items: center;
 }
 .feed-action {
@@ -593,7 +685,6 @@ button { font: inherit; cursor: pointer; }
 }
 .chip:active, .tab:active, .sheet-close:active, .cart-remove:active,
 .cart-btn:active, .live-mute:active, .qty-stepper button:active,
-.navitem:active:not(.nav-orb) { transform: scale(0.94); }
 .card-tap:active, .live-tile:active, .creator-tile:active,
 .searchbar:active, .ai-suggest:active, .feed-product:active {
   transform: scale(0.98); opacity: 0.92;
@@ -601,7 +692,7 @@ button { font: inherit; cursor: pointer; }
 .feed-action:active .icon { transform: scale(0.9); }
 .sheet-link:active, a.feed-creator:active, .feed-brand:active, a.brand:active { opacity: 0.55; }
 /* App chrome is not prose: no long-press selection or iOS link callout. */
-.navitem, .hub-mod, .chip, .tab, .btn, .searchbar, .ai-suggest, .live-tile,
+.corner-orb, .corner-item, .hub-mod, .chip, .tab, .btn, .searchbar, .ai-suggest, .live-tile,
 .creator-tile, .feed-action, .feed-product, .feed-creator, .feed-brand,
 .brand, .sheet-link, .sheet-close, .cart-btn, .cart-remove, .live-mute,
 .qty-stepper button {
@@ -950,12 +1041,14 @@ button.hub-mod {
   background: var(--bg);
   display: flex;
   flex-direction: column;
-  animation: panel-up 0.24s cubic-bezier(0.2, 0.9, 0.3, 1);
+  /* Everything blooms from the quarter — panels included. */
+  transform-origin: calc(100% - 52px) calc(100% - 52px);
+  animation: panel-bloom 0.26s cubic-bezier(0.22, 1, 0.36, 1);
   outline: none;
 }
-.panel.closing { animation: panel-down 0.18s ease forwards; }
-@keyframes panel-up { from { transform: translateY(28px); opacity: 0.5; } }
-@keyframes panel-down { to { transform: translateY(28px); opacity: 0; } }
+.panel.closing { animation: panel-fold 0.18s ease forwards; }
+@keyframes panel-bloom { from { opacity: 0; transform: scale(0.94) translate(14px, 14px); } }
+@keyframes panel-fold { to { opacity: 0; transform: scale(0.96) translate(10px, 10px); } }
 .panel-head {
   flex: none;
   display: flex;
@@ -994,23 +1087,6 @@ button.hub-mod {
   padding: 0 20px calc(24px + env(safe-area-inset-bottom));
 }
 
-/* ── surface dock ──
-   No destinations, only overlays — and the scopie orb at the center:
-   the AI is the middle of the app. */
-.nav-orb { padding: 0; }
-.dock-orb {
-  display: grid;
-  place-items: center;
-  width: 47px;
-  height: 47px;
-  border-radius: 50%;
-  background: var(--ai-gradient);
-  box-shadow: 0 6px 16px rgba(105, 90, 205, 0.45);
-  transition: transform var(--t-press) ease;
-}
-.nav-orb:active .dock-orb { transform: scale(0.94); }
-.dock-bag { position: relative; display: inline-flex; }
-.dock-bag .cart-count { top: -7px; right: -9px; }
 
 /* ── live cards in the feed ── */
 .live-card {

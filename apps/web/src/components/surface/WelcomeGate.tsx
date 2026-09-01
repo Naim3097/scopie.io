@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { HelmetMark, Wordmark } from "@/components/Brand";
-import type { PanelKind } from "./SurfaceDock";
+import type { PanelKind } from "./CornerNav";
 
 /** Android paints the status bar from meta theme-color — match what shows. */
 function setThemeColor(color: string) {

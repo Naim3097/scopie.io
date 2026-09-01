@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { LiveRoom } from "@scopie/core";
+import { HelmetMark } from "@/components/Brand";
 
 const compact = new Intl.NumberFormat("en-MY", { notation: "compact" });
 
@@ -9,6 +10,8 @@ const compact = new Intl.NumberFormat("en-MY", { notation: "compact" });
  * A live room as a feed card — live is part of the one surface, not a
  * separate section. Poster-only in the scroller (no stream pipeline here;
  * the room page owns the media); the whole card enters the room.
+ * Liveness is a quiet violet pulse; the helmet chip is Scopie's AI identity
+ * (full disclosure rides in the accessible name).
  */
 export function LiveCard({ room, poster }: { room: LiveRoom; poster: string }) {
   return (
@@ -16,17 +19,16 @@ export function LiveCard({ room, poster }: { room: LiveRoom; poster: string }) {
       <Link href={`/live/${encodeURIComponent(room.id)}`} className="live-card">
         <img className="live-card-poster" src={poster} alt="" />
         <span className="live-card-top">
-          <span className="live-badge">
-            <span aria-hidden="true">●</span> LIVE
-          </span>
-          <span className="live-card-viewers">
-            <span aria-hidden="true">✦</span> {compact.format(room.viewerCount)} watching
+          <span className="live-chip" aria-label={`Live, ${room.viewerCount} watching`}>
+            <span className="dot" aria-hidden="true" />
+            Live · {compact.format(room.viewerCount)}
           </span>
         </span>
         <span className="live-card-info">
           {room.hostType === "ai" && (
-            <span className="ai-badge">
-              <span aria-hidden="true">✦</span> AI Host
+            <span className="scopie-chip" aria-label="Hosted by Scopie AI — always disclosed">
+              <HelmetMark size={15} />
+              scopie
             </span>
           )}
           <b>{room.title}</b>
