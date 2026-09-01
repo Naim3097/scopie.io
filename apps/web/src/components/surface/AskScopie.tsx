@@ -27,7 +27,7 @@ function demoSearch(query: string): Product[] {
 }
 
 const EMPTY_REPLY =
-  "I couldn't find a match for that yet — our demo catalog is small. Try “bag”, “shoes”, “watch” or “perfume”.";
+  "I couldn't find a match for that one — try “kaftan”, “kurta”, “perfume”, “burger”, “houseboat” or “motor”.";
 
 /**
  * The AI personal shopper — Scopie's intent path. Lives in a panel over the
@@ -84,7 +84,7 @@ export function AskScopie({ initialQuery }: { initialQuery?: string | null }) {
     setBusy(false);
   };
 
-  const starters = ["A tote bag for work", "White sneakers", "A watch under RM500", "A new perfume"];
+  const starters = ["A batik kaftan for raya", "A perfume under RM50", "Smash burgers near me", "A houseboat trip for the family"];
 
   return (
     <div className="panel-pad">

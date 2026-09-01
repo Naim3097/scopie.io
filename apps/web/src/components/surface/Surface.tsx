@@ -16,9 +16,14 @@ import { SurfaceDock, type PanelKind } from "./SurfaceDock";
 import { WelcomeGate } from "./WelcomeGate";
 
 // Real content frames, not abstract art — a live card must look alive.
-const LIVE_POSTERS = ["/videos/posters/kalima-ai-model.jpg", "/videos/posters/hoor-ugc-1.jpg"];
+const LIVE_POSTERS = [
+  "/videos/posters/kalima-ai-model.jpg",
+  "/videos/posters/batik-traditional.jpg",
+  "/videos/posters/kalima-photoshoot-2.jpg",
+  "/videos/posters/hoor-ugc-1.jpg",
+];
 /** Live cards ride the feed at these positions (after clip 3, then deeper). */
-const LIVE_SLOTS = [3, 9];
+const LIVE_SLOTS = [3, 9, 16, 23];
 
 function weave(videos: Video[], rooms: LiveRoom[]): FeedEntry[] {
   const entries: FeedEntry[] = videos.map((video) => ({ kind: "video", video }));

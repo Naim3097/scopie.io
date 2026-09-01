@@ -63,6 +63,23 @@ contextually, one at a time.
   welcome gate — a brand moment, not a destination. Its three tiles enter
   the surface with the matching overlay.
 
+## The client base (migrated from the first MVP, Sep 2026)
+
+The demo catalog is the REAL client base, migrated from the predecessor
+product ("nexova AI" — its architecture.md is this product's direct
+ancestor). `apps/web/src/lib/catalog.ts` carries 16 merchants and ~90
+products whose prices are literal in each client's own materials (traced
+via nexova-app/src/lib/data/merchants-real*.ts to the client repos under
+"nexova AI/reference/"): HOOR (Batik Dolu-Dolu kaftans — the batik feed
+clips are their campaign films), Kalima (live at kalima.my; prices from
+their Shopee listings), Sugarbomb, BYKI, Belum.my, TongRoroBin, Konbinio,
+It's Mael Burger, JomKaki Motor, Glimsy × Amanina (incl. 3 reel videos in
+the feed; RM prices are placeholders — their repo prices in IDR),
+BINA+, Benefigs, Ombak Damai, and three price-on-request businesses
+(Tropicor Foods B2B, First Class Credit, Factory Credit) which use the
+`enquiryOnly` product flag — quote flows, never invented figures. Live
+rooms pin real products and the demo host scripts ground on them.
+
 ## Identity (Phase 1 — delivered)
 
 - **Web**: Supabase Auth, email OTP today (phone/WhatsApp drops into the same

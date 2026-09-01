@@ -15,7 +15,7 @@ import { API_BASE, DEMO_MODE } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
 import { useCart, MAX_QTY, type CartItem } from "@/lib/cart";
-import { formatRM } from "@/lib/demo";
+import { formatRM, sellerOf } from "@/lib/demo";
 import { uuid4 } from "@/lib/identity";
 import { StrokeIcon } from "@/components/Glyph";
 import { flush, track } from "@/lib/events";
@@ -266,6 +266,7 @@ function ProductSheet({
 }) {
   const [qty, setQty] = useState(1);
   const [feedback, setFeedback] = useState<"added" | "full" | null>(null);
+  const seller = sellerOf(product);
 
   return (
     <div>
@@ -278,7 +279,19 @@ function ProductSheet({
         )}
         <h2 style={{ fontSize: 21 }}>{product.title}</h2>
         {product.variant && <div className="card-variant" style={{ fontSize: 14 }}>{product.variant}</div>}
-        <div className="sheet-price">{formatRM(product.priceSen)}</div>
+        {seller && (
+          <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>
+            by <b>{seller.name}</b>
+            {seller.verified && (
+              <span style={{ color: "var(--accent)" }} aria-label="Verified seller">
+                {" "}
+                ✓
+              </span>
+            )}{" "}
+            · {seller.tagline}
+          </div>
+        )}
+        <div className="sheet-price">{product.enquiryOnly ? "Price on request" : formatRM(product.priceSen)}</div>
         {product.tags.length > 0 && (
           <div className="chips" style={{ marginBottom: 4 }} aria-hidden="true">
             {product.tags.slice(0, 5).map((t) => (
@@ -289,42 +302,53 @@ function ProductSheet({
           </div>
         )}
 
-        <div className="sheet-row" style={{ marginTop: 8 }}>
-          <span style={{ fontWeight: 700, fontSize: 14.5 }}>Quantity</span>
-          <QtyStepper
-            qty={qty}
-            onChange={(n) => setQty(Math.min(MAX_QTY, Math.max(1, n)))}
-            label={product.title}
-          />
-        </div>
-
-        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-          <button
-            className="btn btn-ghost"
-            style={{ flex: 1 }}
-            onClick={() => {
-              const ok = onAdd(qty);
-              setFeedback(ok ? "added" : "full");
-              setTimeout(() => setFeedback(null), 1800);
-            }}
-          >
-            {feedback === "added" ? "Added ✓" : "Add to cart"}
-          </button>
-          <button className="btn btn-primary" style={{ flex: 1, width: "auto" }} onClick={() => onBuy(qty)}>
-            Buy now
-          </button>
-        </div>
-        {feedback === "full" && (
-          <p role="alert" className="sheet-note" style={{ color: "var(--live-ink)" }}>
-            Your cart is full — remove something first.
+        {product.enquiryOnly ? (
+          // B2B / regulated services: no invented figures, no cart — the
+          // seller quotes directly. Ask Scopie can explain the offering.
+          <p className="sheet-note" style={{ marginTop: 12 }}>
+            This is a quote-based offering — the seller confirms pricing and terms directly. Ask Scopie about it
+            from the feed, or follow the seller for updates.
           </p>
+        ) : (
+          <>
+            <div className="sheet-row" style={{ marginTop: 8 }}>
+              <span style={{ fontWeight: 700, fontSize: 14.5 }}>Quantity</span>
+              <QtyStepper
+                qty={qty}
+                onChange={(n) => setQty(Math.min(MAX_QTY, Math.max(1, n)))}
+                label={product.title}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+              <button
+                className="btn btn-ghost"
+                style={{ flex: 1 }}
+                onClick={() => {
+                  const ok = onAdd(qty);
+                  setFeedback(ok ? "added" : "full");
+                  setTimeout(() => setFeedback(null), 1800);
+                }}
+              >
+                {feedback === "added" ? "Added ✓" : "Add to cart"}
+              </button>
+              <button className="btn btn-primary" style={{ flex: 1, width: "auto" }} onClick={() => onBuy(qty)}>
+                Buy now
+              </button>
+            </div>
+            {feedback === "full" && (
+              <p role="alert" className="sheet-note" style={{ color: "var(--live-ink)" }}>
+                Your cart is full — remove something first.
+              </p>
+            )}
+            {feedback === "added" && (
+              <button className="sheet-link" onClick={onViewCart}>
+                View cart →
+              </button>
+            )}
+            <p className="sheet-note">Buyer-protected: your payment is held until the order is delivered.</p>
+          </>
         )}
-        {feedback === "added" && (
-          <button className="sheet-link" onClick={onViewCart}>
-            View cart →
-          </button>
-        )}
-        <p className="sheet-note">Buyer-protected: your payment is held until the order is delivered.</p>
       </div>
     </div>
   );

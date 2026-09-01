@@ -17,6 +17,9 @@ export const Product = z.object({
   /** Calibrated similarity score for "AI Picks" (0–100). Display-capped. */
   matchScore: z.number().min(0).max(100).optional(),
   tags: z.array(z.string()).default([]),
+  /** Price-on-request listing (B2B / regulated financing): price stays 0,
+   *  buy actions are replaced by an enquiry note. Never invent figures. */
+  enquiryOnly: z.boolean().optional(),
 });
 export type Product = z.infer<typeof Product>;
 

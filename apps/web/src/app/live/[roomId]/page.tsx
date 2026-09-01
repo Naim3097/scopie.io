@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import type { LiveRoom, Product } from "@scopie/core";
 import { API_BASE, DEMO_MODE, apiGet, apiPost } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/supabase";
-import { DEMO_LIVE_HLS, demoHostReply, demoProducts, demoRooms, formatRM } from "@/lib/demo";
+import { DEMO_LIVE_HLS, demoChatFor, demoHostReply, demoProducts, demoRooms, formatRM } from "@/lib/demo";
 import { MOBILE_HLS_CONFIG, applyLevelCap } from "@/lib/hls-config";
 import { connectViewer, type ViewerConnection } from "@/lib/live";
 import { HelmetMark, Wordmark } from "@/components/Brand";
@@ -34,12 +34,8 @@ const NO_VIDEO_FALLBACK_MS = 12_000;
 /** While a live room plays the fallback, retry the real connection this often (via the 10 s poll). */
 const LIVEKIT_RETRY_MS = 30_000;
 
-// Scripted chat is demo-theater — a real room must start with a real (empty) log.
-const DEMO_CHAT: ChatMsg[] = [
-  { from: "Nurul", text: "Love this bag! 😍" },
-  { from: "Aiman", text: "How much is the bag?" },
-  { from: "Scopie", text: "It's RM 189.00 — and there's 10% off today only ✨", isHost: true },
-];
+// Scripted chat is demo-theater — a real room must start with a real (empty)
+// log. The script grounds on the room's own pinned product (demoChatFor).
 
 /**
  * Live room viewer. Real mode: viewer token → LiveKit room (subscribe-only),
@@ -67,7 +63,7 @@ export default function LiveRoomPage() {
   );
   const [mode, setMode] = useState<PlaybackMode>("pending");
   const [connectAttempt, setConnectAttempt] = useState(0);
-  const [messages, setMessages] = useState<ChatMsg[]>(DEMO_MODE ? DEMO_CHAT : []);
+  const [messages, setMessages] = useState<ChatMsg[]>(() => (DEMO_MODE ? demoChatFor(roomId) : []));
   const [draft, setDraft] = useState("");
   const [dealLeft, setDealLeft] = useState<number | null>(null);
   const [muted, setMuted] = useState(true);
@@ -93,7 +89,7 @@ export default function LiveRoomPage() {
   // a pending demo reply would land in the wrong chat).
   useEffect(() => {
     if (demoReplyTimerRef.current) clearTimeout(demoReplyTimerRef.current);
-    setMessages(DEMO_MODE ? DEMO_CHAT : []);
+    setMessages(DEMO_MODE ? demoChatFor(roomId) : []);
     lastChatIdRef.current = "0";
     loadFailuresRef.current = 0;
     setDealLeft(null);
@@ -151,9 +147,12 @@ export default function LiveRoomPage() {
   }, [room]);
 
   // The product rail (the mock's right-hand shelf): pinned first, then the
-  // rest of the show's catalog. Real rooms only reliably know the pin today.
+  // rest of THIS seller's catalog — a HOOR live shelves HOOR, nothing else.
   const rail: Product[] = useMemo(() => {
-    const rest = DEMO_MODE ? demoProducts.filter((p) => p.id !== pinned?.id) : [];
+    const rest =
+      DEMO_MODE && pinned
+        ? demoProducts.filter((p) => p.sellerId === pinned.sellerId && p.id !== pinned.id && !p.enquiryOnly)
+        : [];
     return [...(pinned ? [pinned] : []), ...rest].slice(0, 3);
   }, [pinned]);
 

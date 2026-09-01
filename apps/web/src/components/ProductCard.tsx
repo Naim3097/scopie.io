@@ -31,18 +31,28 @@ export function ProductCard({ product, surface = "discover" }: { product: Produc
             </span>
           )}
           <span className="card-price" style={{ display: "block" }}>
-            {formatRM(product.priceSen)}
+            {product.enquiryOnly ? "On request" : formatRM(product.priceSen)}
           </span>
         </span>
       </button>
       <div className="card-body" style={{ paddingTop: 8 }}>
-        <button
-          className="btn btn-primary"
-          style={{ padding: "11px 16px", fontSize: 14, whiteSpace: "nowrap" }}
-          onClick={() => buyNow(product, surface)}
-        >
-          Buy now
-        </button>
+        {product.enquiryOnly ? (
+          <button
+            className="btn btn-ghost"
+            style={{ padding: "11px 16px", fontSize: 14, whiteSpace: "nowrap" }}
+            onClick={() => openProduct(product, surface)}
+          >
+            View details
+          </button>
+        ) : (
+          <button
+            className="btn btn-primary"
+            style={{ padding: "11px 16px", fontSize: 14, whiteSpace: "nowrap" }}
+            onClick={() => buyNow(product, surface)}
+          >
+            Buy now
+          </button>
+        )}
       </div>
     </div>
   );
