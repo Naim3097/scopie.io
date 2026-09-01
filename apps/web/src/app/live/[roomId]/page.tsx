@@ -9,9 +9,13 @@ import { getAuthHeaders } from "@/lib/supabase";
 import { DEMO_LIVE_HLS, demoHostReply, demoProducts, demoRooms, formatRM } from "@/lib/demo";
 import { MOBILE_HLS_CONFIG, applyLevelCap } from "@/lib/hls-config";
 import { connectViewer, type ViewerConnection } from "@/lib/live";
-import { useCommerce } from "@/components/commerce/Commerce";
+import { HelmetMark, Wordmark } from "@/components/Brand";
+import { CartButton, useCommerce } from "@/components/commerce/Commerce";
 import { Hero, StrokeIcon } from "@/components/Glyph";
+import { isFollowing, toggleFollow } from "@/lib/social";
 import { track } from "@/lib/events";
+
+const compact = new Intl.NumberFormat("en-MY", { notation: "compact" });
 
 interface ChatMsg {
   id?: string;
@@ -68,10 +72,13 @@ export default function LiveRoomPage() {
   const [dealLeft, setDealLeft] = useState<number | null>(null);
   const [muted, setMuted] = useState(true);
   const [needsTap, setNeedsTap] = useState(false);
+  // Social chrome on the surface — local until accounts own the graph.
+  const [following, setFollowing] = useState(false);
+  const [liked, setLiked] = useState(false);
   const chatlogRef = useRef<HTMLDivElement>(null);
   const lastChatIdRef = useRef("0");
   const demoReplyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { openProduct } = useCommerce();
+  const { openProduct, buyNow } = useCommerce();
 
   const roomGone = room === "not_found" || (room !== null && room.status === "ended");
   const polling = !DEMO_MODE && room !== null && room !== "not_found" && room.status !== "ended";
@@ -129,6 +136,11 @@ export default function LiveRoomPage() {
     return () => track({ type: "live.leave", subjectId: roomId, surface: "live" });
   }, [roomId]);
 
+  // Follows live on this device for now (same store the creator pages use).
+  useEffect(() => {
+    setFollowing(isFollowing(`live:${roomId}`));
+  }, [roomId]);
+
   // In real mode the server resolves the pinned product; the local demo
   // catalog is only consulted on the pure-demo site.
   const pinned: Product | null | undefined = useMemo(() => {
@@ -137,6 +149,13 @@ export default function LiveRoomPage() {
     if (DEMO_MODE) return demoProducts.find((p) => p.id === room.pinnedProductId) ?? null;
     return null;
   }, [room]);
+
+  // The product rail (the mock's right-hand shelf): pinned first, then the
+  // rest of the show's catalog. Real rooms only reliably know the pin today.
+  const rail: Product[] = useMemo(() => {
+    const rest = DEMO_MODE ? demoProducts.filter((p) => p.id !== pinned?.id) : [];
+    return [...(pinned ? [pinned] : []), ...rest].slice(0, 3);
+  }, [pinned]);
 
   // Load room + decide playback mode. Re-runs when the poll requests a
   // LiveKit retry (connectAttempt) — e.g. the seller's video arrived late.
@@ -474,106 +493,201 @@ export default function LiveRoomPage() {
   const sampleFallback = !DEMO_MODE && mode === "hls";
 
   return (
-    <main className="page page--pad">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <div>
-          <h1 style={{ fontSize: 20 }}>{room ? room.title : "Scopie Live"}</h1>
-          {room?.hostType === "ai" && (
-            <span className="ai-badge" title="This host is an AI avatar">
-              <span aria-hidden="true">✦</span> AI Host — always disclosed
+    <main className="live-surface">
+      <h1 className="sr-only">{room ? room.title : "Scopie Live"}</h1>
+      <video
+        className="ls-video"
+        ref={videoRef}
+        playsInline
+        muted={muted}
+        loop={mode === "hls"}
+        poster="/videos/posters/kalima-ai-model.jpg"
+      />
+      {room === null && (
+        <div className="buffering" aria-hidden="true">
+          <div className="ring"></div>
+        </div>
+      )}
+      {needsTap && (
+        <button className="tap-to-play" onClick={tapToPlay} aria-label="Play stream">
+          <StrokeIcon kind="play" size={44} />
+        </button>
+      )}
+
+      {/* top chrome: the way home, then liveness */}
+      <header className="ls-top">
+        <Link href="/" className="ls-brand">
+          <span className="brand-visual" aria-hidden="true">
+            <HelmetMark size={27} fill="#ffffff" />
+            <Wordmark color="#ffffff" />
+          </span>
+          <span className="sr-only">Scopie home</span>
+        </Link>
+        <span className="ls-top-right">
+          {/* The badge asserts liveness — never show it before the room loads. */}
+          {isLive && (
+            <span className="live-badge">
+              <span aria-hidden="true">●</span> LIVE
             </span>
           )}
-        </div>
-        {/* The badge asserts liveness — never show it before the room loads. */}
-        {isLive && (
-          <span className="live-badge">
-            <span aria-hidden="true">●</span> LIVE
+          {room && (
+            <span className="ls-viewers">
+              <span aria-hidden="true">✦</span> {compact.format(room.viewerCount)} watching
+            </span>
+          )}
+        </span>
+      </header>
+
+      {/* host row */}
+      <div className="ls-host">
+        <span className="grow">
+          <b>{room ? room.title : "Scopie Live"}</b>
+          <span className="ls-host-sub">
+            {room?.hostType === "ai" && (
+              <span className="ai-badge" title="This host is an AI avatar">
+                <span aria-hidden="true">✦</span> AI Host
+              </span>
+            )}
+            {sampleFallback && <span className="stage-tag ls-sample">Sample preview — live video unavailable</span>}
           </span>
-        )}
+        </span>
+        <button
+          className={`ls-follow${following ? " on" : ""}`}
+          aria-pressed={following}
+          onClick={() => setFollowing(toggleFollow(`live:${roomId}`))}
+        >
+          {following ? "Following ✓" : "Follow"}
+        </button>
       </div>
 
-      <div className="live-stage">
-        <video ref={videoRef} playsInline muted={muted} loop={mode === "hls"} poster="/posters/poster-a.png" />
-        {room === null && (
-          <div className="buffering" aria-hidden="true">
-            <div className="ring"></div>
-          </div>
-        )}
-        {sampleFallback && <span className="stage-tag">Sample preview — live video unavailable</span>}
-        <button className="live-mute" onClick={toggleMute} aria-label={muted ? "Unmute" : "Mute"}>
-          <StrokeIcon kind={muted ? "sound-off" : "sound-on"} size={19} />
-        </button>
-        {needsTap && (
-          <button className="tap-to-play" onClick={tapToPlay} aria-label="Play stream">
-            <StrokeIcon kind="play" size={44} />
-          </button>
-        )}
-        {pinned && (
-          <div className="live-pin">
-            {pinned.imageUrl && <img src={pinned.imageUrl} alt="" />}
-            <div className="grow">
-              <b>{pinned.title}</b>
-              <span style={{ fontSize: 13 }}>{formatRM(pinned.priceSen)}</span>
-              {room?.flashDeal && (
-                <div className="deal">
-                  {dealActive
-                    ? `${room.flashDeal.discountPct}% OFF · ${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`
-                    : "Deal ended"}
-                </div>
-              )}
-            </div>
+      {/* the shelf: pinned first, tap opens the product sheet over the show */}
+      {rail.length > 0 && (
+        <div className="ls-rail" role="group" aria-label="Products in this live">
+          {rail.map((p) => (
             <button
-              className="btn btn-primary"
-              style={{ width: "auto", padding: "9px 14px", fontSize: 13.5 }}
+              key={p.id}
+              className="ls-rail-card"
+              onClick={() => {
+                track({ type: "live.pin_tap", subjectId: p.id, surface: "live" });
+                openProduct(p, "live");
+              }}
+              aria-label={`${p.title}, ${formatRM(p.priceSen)}`}
+            >
+              {p.imageUrl && <img src={p.imageUrl} alt="" />}
+              {/* whole ringgit, like the mock — the sheet shows exact prices */}
+              <span className="ls-rail-price">RM {Math.round(p.priceSen / 100)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* bottom cluster: chat, pinned bar, one input */}
+      <div className="ls-bottom">
+        <div className="ls-chat" aria-live="polite" ref={chatlogRef}>
+          {messages.map((m, i) => (
+            <div key={m.id ?? `local_${i}`} className={`ls-msg${m.isSystem ? " system" : ""}`}>
+              {m.isHost ? (
+                <span className="ls-avatar ls-avatar--scopie" aria-hidden="true">
+                  <HelmetMark size={16} fill="#ffffff" />
+                </span>
+              ) : (
+                <span className="ls-avatar" aria-hidden="true">
+                  {(m.from[0] ?? "•").toUpperCase()}
+                </span>
+              )}
+              <span className="ls-msg-body">
+                <b>{m.isHost ? "scopie" : m.from}</b>
+                <span>
+                  {m.text}
+                  {m.product && (
+                    <span className="ls-msg-product">
+                      {" "}
+                      · {m.product.title} — {formatRM(m.product.priceSen)}
+                    </span>
+                  )}
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {pinned && (
+          <div className="ls-pin">
+            <button
+              className="ls-pin-body"
               // The product sheet opens over the stream — the show keeps playing.
               onClick={() => {
                 track({ type: "live.pin_tap", subjectId: pinned.id, surface: "live" });
                 openProduct(pinned, "live");
               }}
-              aria-label={`Shop ${pinned.title}`}
+              aria-label={`View ${pinned.title}`}
             >
-              +
+              {pinned.imageUrl && <img src={pinned.imageUrl} alt="" />}
+              <span className="grow">
+                <b>{pinned.title}</b>
+                <span className="ls-pin-price">{formatRM(pinned.priceSen)}</span>
+                {room?.flashDeal && (
+                  <span className="deal">
+                    {dealActive
+                      ? `${room.flashDeal.discountPct}% OFF · ${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`
+                      : "Deal ended"}
+                  </span>
+                )}
+              </span>
+            </button>
+            <button
+              className="btn btn-primary ls-buy"
+              // Buy = straight to the Scopie Pay confirmation; the tap is the authorization.
+              onClick={() => {
+                track({ type: "live.pin_tap", subjectId: pinned.id, surface: "live" });
+                buyNow(pinned, "live");
+              }}
+              aria-label={`Buy ${pinned.title}`}
+            >
+              Buy
             </button>
           </div>
         )}
-      </div>
 
-      <div className="chatlog" aria-live="polite" ref={chatlogRef}>
-        {messages.map((m, i) => (
-          <div key={m.id ?? `local_${i}`} className="chatmsg" style={m.isSystem ? { color: "var(--faint)" } : undefined}>
-            <b>
-              {m.isHost ? (
-                <>
-                  <span aria-hidden="true">✦</span> Scopie
-                </>
-              ) : (
-                m.from
-              )}
-            </b>{" "}
-            {m.text}
-            {m.product && (
-              <span style={{ color: "var(--muted)", fontSize: 13 }}>
-                {" "}
-                · {m.product.title} — {formatRM(m.product.priceSen)}
+        <div className="ls-inputrow">
+          <div className="ls-say">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+                if (e.key === "Enter") void send();
+              }}
+              placeholder="Say something…"
+              aria-label="Chat — Scopie answers questions"
+            />
+            {/* one affordance: the AI spark at rest, send once there's a draft */}
+            {draft.trim() ? (
+              <button className="ls-send" onClick={() => void send()} aria-label="Send">
+                <StrokeIcon kind="share" size={16} />
+              </button>
+            ) : (
+              <span className="ls-say-spark" aria-hidden="true" title="Scopie answers questions here">
+                <StrokeIcon kind="spark" size={15} />
               </span>
             )}
           </div>
-        ))}
-      </div>
-      <div className="chatrow">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-            if (e.key === "Enter") void send();
-          }}
-          placeholder="Say something…"
-          aria-label="Chat message"
-        />
-        <button className="btn btn-ghost" onClick={() => void send()}>
-          Send
-        </button>
+          <CartButton />
+          <button
+            className={`ls-like${liked ? " on" : ""}`}
+            aria-pressed={liked}
+            aria-label="Like this live"
+            onClick={() => {
+              setLiked((v) => !v);
+              track({ type: "live.like", subjectId: roomId, surface: "live" });
+            }}
+          >
+            <StrokeIcon kind="heart" size={19} />
+          </button>
+          <button className="live-mute ls-mute" onClick={toggleMute} aria-label={muted ? "Unmute" : "Mute"}>
+            <StrokeIcon kind={muted ? "sound-off" : "sound-on"} size={19} />
+          </button>
+        </div>
       </div>
     </main>
   );

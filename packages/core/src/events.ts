@@ -25,6 +25,7 @@ export const EngagementEventType = z.enum([
   "live.leave",
   "live.chat",
   "live.pin_tap", // tapped the pinned product
+  "live.like",
   "search.query",
 ]);
 export type EngagementEventType = z.infer<typeof EngagementEventType>;

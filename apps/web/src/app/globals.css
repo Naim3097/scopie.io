@@ -96,10 +96,11 @@ body::before {
     radial-gradient(560px 420px at 88% -60px, rgba(148, 133, 235, 0.14), transparent 70%),
     radial-gradient(520px 420px at -60px 30%, rgba(105, 90, 205, 0.08), transparent 70%);
 }
-/* The feed owns a dark world: the document ground must agree, or entering
-   /feed flashes white and iOS rubber-banding reveals a light halo. */
-html:has(.page--feed), body:has(.page--feed) { background: var(--graphite-deep); }
-body:has(.page--feed)::before { content: none; }
+/* The feed and live rooms own a dark world: the document ground must agree,
+   or entering them flashes white and iOS rubber-banding reveals a light halo. */
+html:has(.page--feed), html:has(.live-surface),
+body:has(.page--feed), body:has(.live-surface) { background: var(--graphite-deep); }
+body:has(.page--feed)::before, body:has(.live-surface)::before { content: none; }
 
 h1, h2, h3 {
   font-family: var(--font-manrope), "Manrope", system-ui, sans-serif;
@@ -1071,6 +1072,181 @@ button.hub-mod {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
 }
 .live-card:active .live-card-cta { transform: scale(0.96); }
+
+/* ── the live surface (/live/[roomId]) ──
+   The mock made real: full-bleed stream, everything else an overlay.
+   Discipline: ONE input (scopie answers questions in it), sizes live in the
+   product sheet, the rail is the only persistent commerce chrome. */
+.live-surface {
+  position: relative;
+  max-width: 480px;
+  margin: 0 auto;
+  height: 100vh; /* dvh fallback */
+  height: 100dvh;
+  background: var(--graphite-deep);
+  overflow: hidden;
+  color: #fff;
+}
+.ls-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ls-top {
+  position: absolute; z-index: 4;
+  left: 16px; right: 16px;
+  top: calc(12px + env(safe-area-inset-top));
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.ls-brand {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: #fff; font-size: 19px; font-weight: 800; letter-spacing: -0.03em;
+  filter: drop-shadow(0 1px 5px rgba(0, 0, 0, 0.4));
+  transition: opacity var(--t-press) ease;
+}
+.ls-brand .brand-word { color: #fff; }
+.ls-brand:active { opacity: 0.55; }
+.ls-brand:focus-visible { outline: 2px solid #fff; outline-offset: 4px; border-radius: 8px; }
+.ls-top-right { display: inline-flex; align-items: center; gap: 8px; }
+.ls-viewers {
+  background: rgba(27, 23, 38, 0.55); color: #fff;
+  font-size: 12px; font-weight: 700;
+  border-radius: 999px; padding: 4px 11px;
+  white-space: nowrap;
+}
+.ls-host {
+  position: absolute; z-index: 4;
+  left: 16px; right: 16px;
+  top: calc(56px + env(safe-area-inset-top));
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.ls-host .grow { flex: 1; min-width: 0; }
+.ls-host b {
+  display: block; font-size: 17px; font-weight: 800; letter-spacing: -0.01em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+.ls-host-sub { display: inline-flex; align-items: center; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+/* stage-tag is absolute by default — inline here */
+.ls-sample { position: static; }
+.ls-follow {
+  flex: none; border: none; border-radius: 999px; padding: 8px 17px;
+  background: var(--accent); color: #fff;
+  font-weight: 700; font-size: 13px;
+  box-shadow: 0 4px 12px rgba(105, 90, 205, 0.4);
+  transition: transform var(--t-press) ease, background var(--t-state) ease, color var(--t-state) ease;
+}
+.ls-follow.on { background: rgba(255, 255, 255, 0.92); color: var(--accent); }
+.ls-follow:active { transform: scale(0.95); }
+
+.ls-rail {
+  position: absolute; z-index: 4;
+  right: 12px; top: 50%;
+  transform: translateY(-58%);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.ls-rail-card {
+  position: relative;
+  width: 74px; aspect-ratio: 3 / 4;
+  border-radius: 14px; overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  background: var(--graphite-deep);
+  padding: 0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: transform var(--t-press) ease;
+}
+.ls-rail-card:active { transform: scale(0.95); }
+.ls-rail-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ls-rail-price {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: rgba(27, 23, 38, 0.82); color: #fff;
+  font-size: 11px; font-weight: 800;
+  padding: 3px 7px; text-align: left;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.ls-bottom {
+  position: absolute; z-index: 4;
+  left: 12px; right: 12px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 10px;
+}
+.ls-chat {
+  max-height: 26dvh;
+  overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 9px;
+  margin-right: 96px; /* clear the rail */
+  padding-top: 24px;
+  scrollbar-width: none;
+  /* older messages dissolve upward, like the mock */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 28px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 28px);
+}
+.ls-chat::-webkit-scrollbar { display: none; }
+.ls-msg { display: flex; gap: 8px; align-items: flex-start; }
+.ls-avatar {
+  flex: none; width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3); color: #fff;
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 800;
+}
+.ls-avatar--scopie { background: var(--ai-gradient); }
+.ls-msg-body { display: flex; flex-direction: column; min-width: 0; font-size: 14px; line-height: 1.35; }
+.ls-msg-body b { font-size: 12.5px; font-weight: 700; color: rgba(255, 255, 255, 0.82); }
+.ls-msg-body > span { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); overflow-wrap: anywhere; }
+.ls-msg.system .ls-msg-body > span { color: rgba(255, 255, 255, 0.65); }
+.ls-msg-product { color: rgba(255, 255, 255, 0.78); font-size: 13px; }
+
+.ls-pin {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 18px; padding: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+.ls-pin-body {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 10px;
+  background: none; border: none; padding: 0;
+  text-align: left; color: var(--ink);
+  transition: opacity var(--t-press) ease;
+}
+.ls-pin-body:active { opacity: 0.7; }
+.ls-pin-body img { flex: none; width: 52px; height: 52px; border-radius: 12px; object-fit: cover; }
+.ls-pin-body .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ls-pin-body b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ls-pin-price { font-size: 13px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ls-buy { width: auto; padding: 11px 22px; font-size: 14.5px; flex: none; }
+
+.ls-inputrow { display: flex; align-items: center; gap: 8px; }
+.ls-say { flex: 1; min-width: 0; position: relative; display: flex; align-items: center; }
+.ls-say input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(27, 23, 38, 0.55);
+  color: #fff;
+  border-radius: 999px;
+  padding: 12px 40px 12px 18px;
+  font: inherit; font-size: 16px;
+}
+.ls-say input::placeholder { color: rgba(255, 255, 255, 0.7); }
+.ls-say input:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.85); outline-offset: 1px; }
+.ls-say-spark { position: absolute; right: 14px; color: var(--lilac); pointer-events: none; }
+.ls-send {
+  position: absolute; right: 5px;
+  width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: none;
+  background: var(--ai-gradient); color: #fff;
+  box-shadow: 0 3px 10px rgba(105, 90, 205, 0.4);
+  transition: transform var(--t-press) ease;
+}
+.ls-like {
+  flex: none; width: 42px; height: 42px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(27, 23, 38, 0.55); color: #fff;
+  transition: transform var(--t-press) ease, background var(--t-state) ease;
+}
+.ls-send:active, .ls-like:active { transform: scale(0.92); }
+.ls-like.on { background: var(--live); border-color: transparent; }
+/* live-mute is absolute by default — it sits in the input row here */
+.ls-mute { position: static; }
 
 /* 320px reflow (small phones / 200% zoom): the trio shrinks as one unit. */
 @media (max-width: 359px) {
