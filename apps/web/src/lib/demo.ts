@@ -1,6 +1,8 @@
 import type { Video, LiveRoom } from "@scopie/core";
 import { demoProducts } from "./catalog";
+import { AUCTIONS } from "./auction";
 import { DROPS } from "./drops";
+import { GIVEAWAYS } from "./giveaway";
 
 /** Client-side demo data, used when the API is unreachable (static preview). */
 
@@ -140,12 +142,20 @@ export function demoChatFor(roomId: string): { from: string; text: string; isHos
       { from: "Scopie", text: "Ask me about any product in this show — I'll find it for you ✨", isHost: true },
     ];
   }
-  // Quote the DROP price only where a genuine deal pair exists for this room.
+  // Ground the host's opener in the room's own commerce mechanic: quote the
+  // drop pair where one exists, tease the lot in auction rooms, tease the
+  // giveaway in Mael's — never an invented number.
   const drop = room ? DROPS[room.id] : undefined;
+  const auction = room ? AUCTIONS[room.id] : undefined;
+  const giveaway = room ? GIVEAWAYS[room.id] : undefined;
   const dealLine =
     drop && drop.dealPriceSen < pinned.priceSen && drop.productId === pinned.id
       ? `${pinned.title} drops to ${formatRM(drop.dealPriceSen)} when the drop opens — usually ${formatRM(pinned.priceSen)} ✨`
-      : `${pinned.title} is ${formatRM(pinned.priceSen)} — tap the card to grab it ✨`;
+      : auction
+        ? `The ${pinned.title} goes on the block this show — opens at ${formatRM(auction.startPriceSen)}, highest bid takes it 🔨`
+        : giveaway
+          ? `${pinned.title} is ${formatRM(pinned.priceSen)} — and the giveaway opens soon, free to enter 🎁`
+          : `${pinned.title} is ${formatRM(pinned.priceSen)} — tap the card to grab it ✨`;
   return [
     { from: "Nurul", text: "Love this! 😍" },
     { from: "Aiman", text: "How much is this one?" },
@@ -172,6 +182,12 @@ export function demoHostReply(question: string, pinnedProductId?: string | null)
     demoProducts.find((p) => p.id === pinnedProductId) ??
     null;
 
+  if (/bid|auction|lelong|proxy|max bid/.test(q)) {
+    return "Tap Bid for the next step, or arm a Max bid — Scopie bids the minimum for you, never your max. A bid in the final 10 seconds extends the clock 🔨";
+  }
+  if (/giveaway|free|percuma/.test(q)) {
+    return "When the giveaway card is up, entry is free and one tap — winner drawn live 🎁";
+  }
   if (/deal|discount|promo|diskaun|offer/.test(q)) {
     return "Watch for the drop card — when it's on screen, the price on it is live. First come, first served ✨";
   }

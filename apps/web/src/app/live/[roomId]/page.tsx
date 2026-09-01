@@ -13,7 +13,11 @@ import { HelmetMark, Wordmark } from "@/components/Brand";
 import { CartButton, useCommerce } from "@/components/commerce/Commerce";
 import { Hero, StrokeIcon } from "@/components/Glyph";
 import { DropResult, FlashDrop } from "@/components/live/FlashDrop";
+import { AuctionBlock } from "@/components/live/AuctionBlock";
+import { GiveawayBlock } from "@/components/live/GiveawayBlock";
 import { useCart } from "@/lib/cart";
+import type { AuctionPhase } from "@/lib/auction";
+import type { GiveawayPhase } from "@/lib/giveaway";
 import type { DropPhase } from "@/lib/drops";
 import { nextShow, formatSlotTime } from "@/lib/shows";
 import { isFollowing, toggleFollow } from "@/lib/social";
@@ -79,12 +83,34 @@ export default function LiveRoomPage() {
     null,
   );
   const cart = useCart();
-  // Pitch/demo override: /live/<room>?drop=pre|live|ended pins the phase.
+  // While a lot is on the block, the list-price pin steps aside (one price
+  // on screen at a time — the auction owns the product surface).
+  const [auctionPhase, setAuctionPhase] = useState<AuctionPhase | null>(null);
+  // Pitch/demo overrides: ?drop=pre|live|ended, ?auction=preview|live|sold,
+  // ?giveaway=open|drawing|done — each pins that engine's phase from mount.
   const [dropOverride] = useState<DropPhase | null>(() => {
     if (typeof window === "undefined") return null;
     try {
       const v = new URLSearchParams(window.location.search).get("drop");
       return v === "pre" || v === "live" || v === "ended" || v === "idle" ? v : null;
+    } catch {
+      return null;
+    }
+  });
+  const [auctionOverride] = useState<AuctionPhase | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const v = new URLSearchParams(window.location.search).get("auction");
+      return v === "preview" || v === "live" || v === "sold" || v === "idle" ? v : null;
+    } catch {
+      return null;
+    }
+  });
+  const [giveawayOverride] = useState<GiveawayPhase | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const v = new URLSearchParams(window.location.search).get("giveaway");
+      return v === "open" || v === "drawing" || v === "done" || v === "idle" ? v : null;
     } catch {
       return null;
     }
@@ -165,13 +191,16 @@ export default function LiveRoomPage() {
 
   // The product rail (the mock's right-hand shelf): pinned first, then the
   // rest of THIS seller's catalog — a HOOR live shelves HOOR, nothing else.
+  // While a lot is on the block its list-price card steps out of the rail.
+  const auctionActive = auctionPhase !== null && auctionPhase !== "idle";
   const rail: Product[] = useMemo(() => {
     const rest =
       DEMO_MODE && pinned
         ? demoProducts.filter((p) => p.sellerId === pinned.sellerId && p.id !== pinned.id && !p.enquiryOnly)
         : [];
-    return [...(pinned ? [pinned] : []), ...rest].slice(0, 3);
-  }, [pinned]);
+    const list = auctionActive ? rest : [...(pinned ? [pinned] : []), ...rest];
+    return list.slice(0, 3);
+  }, [pinned, auctionActive]);
 
   // Load room + decide playback mode. Re-runs when the poll requests a
   // LiveKit retry (connectAttempt) — e.g. the seller's video arrived late.
@@ -419,6 +448,10 @@ export default function LiveRoomPage() {
     };
   }, [mode]);
 
+  /** Commerce-engine chat lines (bids, wins, entries) — one shared shape. */
+  const pushMsg = (from: string, text: string, isSystem: boolean) =>
+    setMessages((m) => [...m, { from, text, isSystem }].slice(-200));
+
   const send = async () => {
     const text = draft.trim();
     if (!text) return;
@@ -588,7 +621,9 @@ export default function LiveRoomPage() {
 
       {/* bottom cluster: chat, pinned bar, one input */}
       <div className="ls-bottom">
-        <div className="ls-chat" aria-live="polite" ref={chatlogRef}>
+        {/* Announcements pause during a lot — a bid-a-second auction would
+            turn polite aria-live into a screen-reader firehose. */}
+        <div className="ls-chat" role="log" aria-live={auctionActive ? "off" : "polite"} ref={chatlogRef}>
           {messages.map((m, i) => (
             <div key={m.id ?? `local_${i}`} className={`ls-msg${m.isSystem ? " system" : ""}`}>
               {m.isHost ? (
@@ -645,7 +680,13 @@ export default function LiveRoomPage() {
           />
         )}
 
-        {pinned && (
+        {/* The auction and the giveaway — same slot, per-room configs. */}
+        {dropsOn && (
+          <AuctionBlock roomId={roomId} forcePhase={auctionOverride} onToast={pushMsg} onPhase={setAuctionPhase} />
+        )}
+        {dropsOn && <GiveawayBlock roomId={roomId} forcePhase={giveawayOverride} onToast={pushMsg} />}
+
+        {pinned && !auctionActive && (
           <div className="ls-pin">
             <button
               className="ls-pin-body"

@@ -5,7 +5,10 @@ import type { LiveRoom } from "@scopie/core";
 import { HelmetMark } from "@/components/Brand";
 import { DEMO_MODE } from "@/lib/api";
 import { useNow } from "@/lib/clock";
+import { auctionState } from "@/lib/auction";
 import { dropCycle } from "@/lib/drops";
+import { giveawayState } from "@/lib/giveaway";
+import { formatRM } from "@/lib/demo";
 
 const compact = new Intl.NumberFormat("en-MY", { notation: "compact" });
 
@@ -17,11 +20,13 @@ const compact = new Intl.NumberFormat("en-MY", { notation: "compact" });
  * (full disclosure rides in the accessible name).
  */
 export function LiveCard({ room, poster }: { room: LiveRoom; poster: string }) {
-  // A coarse tick is enough to catch a drop window opening mid-scroll.
-  // null until mounted — the tag never renders on the server (no hydration drift).
+  // A coarse tick is enough to catch a window opening mid-scroll.
+  // null until mounted — tags never render on the server (no hydration drift).
   const now = useNow(15_000);
   const drop = DEMO_MODE && now !== null ? dropCycle(room.id, now) : null;
   const dropLive = drop?.phase === "live" && !drop.soldOut;
+  const auction = DEMO_MODE && now !== null ? auctionState(room.id, now) : null;
+  const giveaway = DEMO_MODE && now !== null ? giveawayState(room.id, now) : null;
   return (
     <section className="feed-item" aria-label={`Live: ${room.title}`}>
       <Link href={`/live/${encodeURIComponent(room.id)}`} className="live-card">
@@ -32,6 +37,8 @@ export function LiveCard({ room, poster }: { room: LiveRoom; poster: string }) {
             Live · {compact.format(room.viewerCount)}
           </span>
           {dropLive && <span className="drop-tag">Drop · {drop.remaining} left</span>}
+          {auction?.phase === "live" && <span className="drop-tag">Auction · {formatRM(auction.priceSen)}</span>}
+          {giveaway?.phase === "open" && <span className="drop-tag">Giveaway 🎁</span>}
           {/* Simulated commerce is labeled, always — Whatnot's own term. */}
           {DEMO_MODE && <span className="rehearsal-chip">Rehearsal</span>}
         </span>

@@ -28,14 +28,10 @@ const PRE_MS = 60_000;
 const WINDOW_MS = 5 * 60_000;
 
 export const DROPS: Record<string, DropConfig> = {
-  // Sugarbomb's genuine pair: RM45.90 → RM39.90.
+  // Sugarbomb's genuine pair: RM45.90 → RM39.90. One mechanic per room:
+  // drops live here; HOOR/Kalima run auctions (lib/auction.ts) and Mael
+  // runs the giveaway (lib/giveaway.ts).
   room_scopie_live: { roomId: "room_scopie_live", productId: "sugarbomb-hush-lush", dealPriceSen: 3990, stock: 120 },
-  // HOOR: no sale pairs exist — limited units at list price. Honest scarcity.
-  room_hoor: { roomId: "room_hoor", productId: "hoor-senja", dealPriceSen: 19900, stock: 40 },
-  // Kalima: limited units at list price.
-  room_kalima: { roomId: "room_kalima", productId: "kalima-ruwa-caftan", dealPriceSen: 25000, stock: 30 },
-  // Mael: genuine combo value framing — list price, small batch.
-  room_mael: { roomId: "room_mael", productId: "mael-duo-box", dealPriceSen: 5290, stock: 60 },
 };
 
 export type DropPhase = "idle" | "pre" | "live" | "ended";

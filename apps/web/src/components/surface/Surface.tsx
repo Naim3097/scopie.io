@@ -84,39 +84,25 @@ export function Surface() {
     DEMO_MODE ? Object.fromEntries(demoProducts.map((p) => [p.id, p])) : {},
   );
 
-  // ?v=<id> deep link, else the last watched card (VideoFeed persists it) —
-  // read synchronously so the first render already targets the right card.
-  const [initialVideoId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      return (
-        new URLSearchParams(window.location.search).get("v") ??
-        sessionStorage.getItem("scopie_feed_at")
-      );
-    } catch {
-      return null;
-    }
-  });
-
+  // ?v=<id> deep link, else the last watched card (VideoFeed persists it);
   // ?panel= (from old-route redirects) opens straight into an overlay;
-  // ?q= seeds the ask thread. Read once, synchronously.
-  const [panel, setPanel] = useState<PanelKind | null>(() => {
-    if (typeof window === "undefined") return null;
+  // ?q= seeds the ask thread. All URL/storage reads happen AFTER hydration —
+  // the server can't see the query string, so a synchronous read here would
+  // make the first client render disagree with the SSR HTML (React #418).
+  const [initialVideoId, setInitialVideoId] = useState<string | null>(null);
+  const [panel, setPanel] = useState<PanelKind | null>(null);
+  const [askSeed, setAskSeed] = useState<string | null>(null);
+  useEffect(() => {
     try {
-      const p = new URLSearchParams(window.location.search).get("panel");
-      return p === "search" || p === "create" || p === "ask" || p === "profile" || p === "shows" ? p : null;
+      const params = new URLSearchParams(window.location.search);
+      setInitialVideoId(params.get("v") ?? sessionStorage.getItem("scopie_feed_at"));
+      const p = params.get("panel");
+      if (p === "search" || p === "create" || p === "ask" || p === "profile" || p === "shows") setPanel(p);
+      setAskSeed(params.get("q"));
     } catch {
-      return null;
+      /* storage unavailable — plain feed */
     }
-  });
-  const [askSeed, setAskSeed] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      return new URLSearchParams(window.location.search).get("q");
-    } catch {
-      return null;
-    }
-  });
+  }, []);
 
   useEffect(() => {
     void (async () => {

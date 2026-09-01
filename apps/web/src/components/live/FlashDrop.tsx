@@ -34,11 +34,13 @@ export function FlashDrop({ roomId, forcePhase, onToast, onClaimed, onMissed }: 
   const lastBucketRef = useRef(-1);
   if (now !== null && mountRef.current === null) mountRef.current = now;
 
-  // Forced phase maps real elapsed time onto a synthetic point in the cycle.
+  // Forced phase maps real elapsed time onto a synthetic point in the cycle,
+  // anchored to MOUNT time so a real 10-minute boundary can't jump the demo.
   let clock = now ?? 0;
   if (now !== null && forcePhase) {
-    const cycleStart = Math.floor(now / 600_000) * 600_000;
-    clock = cycleStart + PHASE_OFFSET[forcePhase] + (now - (mountRef.current ?? now));
+    const anchor = mountRef.current ?? now;
+    const cycleStart = Math.floor(anchor / 600_000) * 600_000;
+    clock = cycleStart + PHASE_OFFSET[forcePhase] + (now - anchor);
   }
   const cycle = now === null ? null : dropCycle(roomId, clock);
 
@@ -113,8 +115,10 @@ export function FlashDrop({ roomId, forcePhase, onToast, onClaimed, onMissed }: 
       {cycle.phase === "live" && (
         <button
           className={`btn btn-primary drop-claim${cycle.soldOut || cycle.userClaimed ? " drop-claim--off" : ""}`}
-          onClick={claim}
-          disabled={cycle.userClaimed}
+          aria-disabled={cycle.userClaimed}
+          onClick={() => {
+            if (!cycle.userClaimed) claim();
+          }}
         >
           {cycle.userClaimed ? "Yours ✓" : cycle.soldOut ? "Sold out" : "Claim"}
         </button>
@@ -156,10 +160,12 @@ export function DropResult({
   }, [kind]);
 
   const share = () => {
-    const text =
+    // Rehearsal disclosure travels with the share (same rule as LiveResult).
+    const text = `${
       kind === "won"
         ? `Dapat! 🎉 ${product.title} on Scopie — ${formatRM(priceSen)}. Malam Drop, every Thursday 9PM: https://scopie.io/welcome`
-        : `Missed the ${product.title} drop 😭 next one: https://scopie.io/?panel=shows`;
+        : `Missed the ${product.title} drop 😭 next one: https://scopie.io/?panel=shows`
+    }\n(Scopie Rehearsal preview — simulated show)`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
   };
 

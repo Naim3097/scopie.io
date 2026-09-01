@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useNow, countdownTo, formatCountdown } from "@/lib/clock";
+import { AUCTIONS, bidIncrement, readPrebid, writePrebid } from "@/lib/auction";
+import { demoProducts } from "@/lib/catalog";
 import { downloadShowIcs, googleCalendarUrl, whatsappShareUrl } from "@/lib/reminders";
 import {
   upcomingShows,
@@ -18,6 +21,65 @@ import { formatRM } from "@/lib/demo";
  * commerce surface: lineup visible, reminders one tap away, and the moment
  * a show goes live the card becomes the door.
  */
+
+/**
+ * Pre-bid: arm a proxy max from the droplist; the moment that room's lot
+ * opens, Scopie bids for you (up to your max, never at it). Whatnot lets
+ * buyers bid before the stream — this is that, Rehearsal tier.
+ */
+function PrebidRow({ roomId, live }: { roomId: string; live: boolean }) {
+  const cfg = AUCTIONS[roomId];
+  const [armed, setArmed] = useState<number | null>(null);
+  const [sel, setSel] = useState<number | null>(null);
+  useEffect(() => setArmed(readPrebid(roomId)), [roomId]);
+  if (!cfg || live) return null;
+  const lot = demoProducts.find((p) => p.id === cfg.productId);
+  if (!lot) return null;
+  const inc = bidIncrement(cfg.startPriceSen);
+  const value = sel ?? cfg.startPriceSen + 4 * inc;
+
+  return (
+    <div className="prebid-row">
+      <span className="prebid-lot">
+        🔨 Lot: <b>{lot.title}</b> · opens {formatRM(cfg.startPriceSen)}
+        <span className="rehearsal-chip">Rehearsal</span>
+      </span>
+      {armed !== null ? (
+        <span className="prebid-armed">
+          Pre-bid {formatRM(armed)} armed ✓
+          <button
+            className="prebid-clear"
+            onClick={() => {
+              writePrebid(roomId, null);
+              setArmed(null);
+            }}
+          >
+            Remove
+          </button>
+        </span>
+      ) : (
+        <span className="prebid-set">
+          <button aria-label="Lower pre-bid" onClick={() => setSel(Math.max(cfg.startPriceSen, value - inc))}>
+            −
+          </button>
+          <b className="num">{formatRM(value)}</b>
+          <button aria-label="Raise pre-bid" onClick={() => setSel(value + inc)}>
+            +
+          </button>
+          <button
+            className="prebid-arm"
+            onClick={() => {
+              writePrebid(roomId, value);
+              setArmed(value);
+            }}
+          >
+            Arm pre-bid
+          </button>
+        </span>
+      )}
+    </div>
+  );
+}
 
 function ShowCard({ occ, now }: { occ: Occurrence; now: number }) {
   const seller = showSeller(occ.slot);
@@ -40,7 +102,7 @@ function ShowCard({ occ, now }: { occ: Occurrence; now: number }) {
             <span className="show-when">{formatSlotTime(occ)} MYT</span>
           )}
           {!live && (
-            <span className="show-count num" aria-label="Starts in">
+            <span className="show-count num" aria-label={`Starts in ${formatCountdown(c)}`}>
               {formatCountdown(c)}
             </span>
           )}
@@ -59,6 +121,7 @@ function ShowCard({ occ, now }: { occ: Occurrence; now: number }) {
             ))}
           </div>
         )}
+        <PrebidRow roomId={occ.slot.roomId} live={live} />
         <div className="show-actions">
           {live ? (
             <Link href={`/live/${occ.slot.roomId}`} className="btn btn-primary show-join">

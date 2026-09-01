@@ -827,7 +827,9 @@ button { font: inherit; cursor: pointer; }
 .corner-orb, .corner-item, .hub-mod, .chip, .tab, .btn, .searchbar, .ai-suggest, .live-tile,
 .creator-tile, .feed-action, .feed-product, .feed-creator, .feed-brand,
 .brand, .sheet-link, .sheet-close, .cart-btn, .cart-remove, .live-mute,
-.qty-stepper button {
+.qty-stepper button,
+.drop-claim, .auction-maxbtn, .auction-stepper button, .slide-arm, .slide-arm-knob,
+.prebid-set > button, .prebid-arm, .prebid-clear, .drop-result-share, .show-act {
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
 
@@ -1246,9 +1248,13 @@ button.hub-mod {
   z-index: 1;
   top: calc(14px + env(safe-area-inset-top));
   right: 16px;
-  display: inline-flex;
+  left: 16px;
+  display: flex;
+  justify-content: flex-end;
   align-items: center;
   gap: 8px;
+  /* three chips (live + drop/auction tag + rehearsal) must wrap, not overflow */
+  flex-wrap: wrap;
 }
 .live-card-viewers {
   background: rgba(27, 23, 38, 0.55);
@@ -1712,8 +1718,23 @@ button.hub-mod {
 }
 .drop-claim { width: auto; padding: 11px 18px; font-size: 14px; flex: none; }
 .drop-claim--off { opacity: 0.55; }
-/* a live drop shrinks the chat so the card never buries the stage */
-.ls-bottom:has(.drop-card) .ls-chat { max-height: 17dvh; }
+/* a live drop/lot/giveaway shrinks the chat so the card never buries the stage */
+.ls-bottom:has(.drop-card) .ls-chat,
+.ls-bottom:has(.auction-card) .ls-chat,
+.ls-bottom:has(.giveaway-card) .ls-chat { max-height: 17dvh; }
+.ls-bottom:has(.auction-max) .ls-chat { max-height: 9dvh; }
+/* legacy browsers without :has() — cap the chat unconditionally instead */
+@supports not selector(:has(*)) {
+  .ls-chat { max-height: 17dvh; }
+}
+/* an engine card owns the product surface — the shelf steps aside with the
+   pin (it returns in the idle windows), and the stack container itself must
+   never swallow taps meant for what's beside it */
+.live-surface:has(.drop-card) .ls-rail,
+.live-surface:has(.auction-card) .ls-rail,
+.live-surface:has(.giveaway-card) .ls-rail { display: none; }
+.ls-bottom { pointer-events: none; }
+.ls-bottom > * { pointer-events: auto; }
 
 /* small feed-card tag: a drop window is open in this room */
 .drop-tag {
@@ -1776,7 +1797,154 @@ button.hub-mod {
   border-color: rgba(27, 23, 38, 0.16);
 }
 
+/* ── the auction ──
+   Same glass as the drop card; the price is the headline, the clock is the
+   drama. Soft-close extensions flash "+10s"; the slide-to-arm is the
+   fast-context confirm for a proxy max. */
+.auction-card {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(27, 23, 38, 0.72);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 18px; padding: 10px;
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  animation: drop-in 0.34s cubic-bezier(0.34, 1.45, 0.55, 1);
+}
+.auction-card--live { border-color: rgba(148, 133, 235, 0.55); }
+.auction-card--sold { opacity: 0.85; }
+.auction-card .drop-headline { flex-wrap: wrap; }
+.auction-card .drop-headline b { font-size: 19px; letter-spacing: -0.01em; white-space: nowrap; }
+/* narrow phones: keep "RM 154.00" whole on one line beside the clock */
+@media (max-width: 389px) {
+  .auction-card .drop-headline b { font-size: 16px; }
+  .auction-card .drop-claim { font-size: 13px; padding: 10px 12px; }
+}
+.auction-leader { font-size: 12.5px; font-weight: 700; color: rgba(255, 255, 255, 0.78); }
+.auction-leader.you { color: var(--lilac); }
+.auction-urgent { color: #ffb4c0; animation: live-pulse 1s ease-in-out infinite; }
+.auction-ext {
+  font-style: normal; margin-left: 6px;
+  color: var(--lilac); font-weight: 800; font-size: 11px;
+  animation: drop-in 0.3s ease;
+}
+.auction-actions {
+  display: flex; flex-direction: column; gap: 6px; align-items: stretch; flex: none;
+}
+.auction-maxbtn {
+  background: none; border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #fff; border-radius: 999px;
+  font-size: 12px; font-weight: 800; padding: 6px 12px;
+  transition: background var(--t-press) ease;
+}
+.auction-maxbtn.on, .auction-maxbtn:active { background: rgba(255, 255, 255, 0.16); }
+.auction-prebid-note { font-size: 11.5px; font-weight: 800; color: var(--lilac); }
+.auction-max {
+  display: flex; flex-direction: column; gap: 8px;
+  background: rgba(27, 23, 38, 0.72);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border: 1px solid rgba(148, 133, 235, 0.45);
+  border-radius: 18px; padding: 10px 12px;
+  animation: drop-in 0.25s ease;
+}
+.auction-stepper {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  color: #fff;
+}
+.auction-stepper b { font-size: 17px; min-width: 110px; text-align: center; }
+.auction-stepper button {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35); background: none; color: #fff;
+  font-size: 18px; font-weight: 700;
+  transition: background var(--t-press) ease;
+}
+.auction-stepper button:active { background: rgba(255, 255, 255, 0.16); }
+.auction-stepper button:disabled { opacity: 0.4; }
+.auction-max-note { font-size: 11px; color: rgba(255, 255, 255, 0.62); text-align: center; }
+
+.slide-arm {
+  position: relative; height: 48px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+  touch-action: none; /* the drag owns horizontal gestures */
+}
+.slide-arm-fill {
+  position: absolute; inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border-radius: 999px;
+  opacity: 0.85;
+}
+.slide-arm-label {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13.5px; font-weight: 700;
+  pointer-events: none;
+}
+.slide-arm-knob {
+  position: absolute; top: 2px; left: 2px;
+  width: 44px; height: 44px; border-radius: 50%;
+  border: none; background: #fff;
+  display: grid; place-items: center; font-size: 19px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  touch-action: none;
+}
+.slide-arm-knob.dragging { transition: none; }
+.slide-arm-knob:not(.dragging) { transition: transform 0.25s ease; }
+
+/* ── the giveaway ── */
+.giveaway-card {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(27, 23, 38, 0.72);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 18px; padding: 10px;
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  animation: drop-in 0.34s cubic-bezier(0.34, 1.45, 0.55, 1);
+}
+.giveaway-card--open { border-color: rgba(148, 133, 235, 0.55); }
+.giveaway-drum { animation: live-pulse 0.9s ease-in-out infinite; }
+
+/* pre-bid on the droplist */
+.prebid-row {
+  display: flex; flex-direction: column; gap: 7px;
+  margin-top: 8px; padding: 9px 11px;
+  background: rgba(27, 23, 38, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  font-size: 12.5px; color: #fff;
+}
+.prebid-lot b { font-weight: 800; }
+.prebid-lot .rehearsal-chip { margin-left: 8px; vertical-align: 1px; }
+.prebid-armed {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 800; color: var(--lilac);
+}
+.prebid-clear {
+  background: none; border: none; padding: 2px 4px;
+  color: rgba(255, 255, 255, 0.7); font-size: 12px; font-weight: 700;
+  text-decoration: underline;
+}
+.prebid-set { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.prebid-set > button {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35); background: none; color: #fff;
+  font-size: 16px; font-weight: 700;
+}
+.prebid-set b { min-width: 86px; text-align: center; font-size: 13.5px; }
+.prebid-arm {
+  margin-left: auto;
+  background: var(--accent); color: #fff; border: none;
+  border-radius: 999px; padding: 7px 14px;
+  font-size: 12.5px; font-weight: 800;
+  transition: opacity var(--t-press) ease;
+}
+.prebid-arm:active { opacity: 0.75; }
+
 @media (prefers-reduced-motion: reduce) {
-  .drop-card, .drop-result, .drop-result-card { animation: none; }
+  .drop-card, .drop-result, .drop-result-card,
+  .auction-card, .auction-max, .giveaway-card, .auction-ext { animation: none; }
   .drop-bar-fill { transition: none; }
+  .auction-urgent, .giveaway-drum { animation: none; }
 }
