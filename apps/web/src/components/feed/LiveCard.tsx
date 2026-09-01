@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { LiveRoom } from "@scopie/core";
 import { HelmetMark } from "@/components/Brand";
+import { DEMO_MODE } from "@/lib/api";
 
 const compact = new Intl.NumberFormat("en-MY", { notation: "compact" });
 
@@ -23,6 +24,8 @@ export function LiveCard({ room, poster }: { room: LiveRoom; poster: string }) {
             <span className="dot" aria-hidden="true" />
             Live · {compact.format(room.viewerCount)}
           </span>
+          {/* Simulated commerce is labeled, always — Whatnot's own term. */}
+          {DEMO_MODE && <span className="rehearsal-chip">Rehearsal</span>}
         </span>
         <span className="live-card-info">
           {room.hostType === "ai" && (

@@ -6,7 +6,7 @@ import { useCommerce } from "@/components/commerce/Commerce";
 import { PATHS } from "@/components/Glyph";
 import { useCart } from "@/lib/cart";
 
-export type PanelKind = "search" | "create" | "ask" | "profile";
+export type PanelKind = "search" | "create" | "ask" | "profile" | "shows";
 
 function Glyph({ kind, size = 20 }: { kind: string; size?: number }) {
   return (

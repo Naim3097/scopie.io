@@ -5,7 +5,9 @@ import type { Product } from "@scopie/core";
 import { StrokeIcon } from "@/components/Glyph";
 import { ProductCard } from "@/components/ProductCard";
 import { apiGet, DEMO_MODE } from "@/lib/api";
+import { useNow, countdownTo, formatCountdown } from "@/lib/clock";
 import { demoProducts, formatRM } from "@/lib/demo";
+import { upcomingShows, formatSlotTime, showSeller } from "@/lib/shows";
 
 type Sort = "trending" | "foryou";
 
@@ -13,7 +15,37 @@ type Sort = "trending" | "foryou";
  * Discovery-with-intent: the browse grid, in a panel over the surface.
  * Conversational queries hand off to the Ask Scopie panel (onAsk).
  */
-export function SearchPanel({ onAsk }: { onAsk: (query?: string) => void }) {
+/** The Upcoming rail — the droplist's front porch inside Discover. */
+function ShowRail({ onShows }: { onShows: () => void }) {
+  const now = useNow(1000);
+  const next = upcomingShows(now, 1).slice(0, 4);
+  return (
+    <div className="show-rail" role="group" aria-label="Upcoming shows">
+      {next.map((o) => (
+        <button key={`${o.slot.id}-${o.startMs}`} className="show-rail-card" onClick={onShows}>
+          <img src={o.slot.poster} alt="" loading="lazy" />
+          <span className="show-rail-scrim" aria-hidden="true" />
+          <span className="show-rail-body">
+            {o.state === "live" ? (
+              <span className="live-chip">
+                <span className="dot" aria-hidden="true" />
+                Live
+              </span>
+            ) : (
+              <span className="show-rail-count num">{formatCountdown(countdownTo(o.startMs, now))}</span>
+            )}
+            <b>{o.slot.title}</b>
+            <span className="show-rail-when">
+              {showSeller(o.slot)?.name} · {formatSlotTime(o)}
+            </span>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function SearchPanel({ onAsk, onShows }: { onAsk: (query?: string) => void; onShows: () => void }) {
   // Demo picks seed synchronously — no spinner frame on open.
   const [picks, setPicks] = useState<Product[]>(() => (DEMO_MODE ? demoProducts : []));
   const [loading, setLoading] = useState(!DEMO_MODE);
@@ -47,6 +79,9 @@ export function SearchPanel({ onAsk }: { onAsk: (query?: string) => void }) {
         Discover what&rsquo;s next, just for you.
       </h2>
       <p className="page-sub">Scopie AI scans trends, understands your style, and finds what you&rsquo;ll love.</p>
+
+      <div className="sec-label">UPCOMING SHOWS</div>
+      <ShowRail onShows={onShows} />
 
       {/* Conversational entry — hands off to the AI personal shopper. */}
       <button className="searchbar" style={{ width: "100%" }} onClick={() => onAsk()}>
@@ -109,7 +144,7 @@ export function SearchPanel({ onAsk }: { onAsk: (query?: string) => void }) {
         </div>
       )}
       <div className="section-note">
-        Match scores are personalised from your activity. The more you browse, the better they get.
+        Match scores are curated Scopie picks for this preview — personalisation switches on with accounts.
       </div>
     </div>
   );

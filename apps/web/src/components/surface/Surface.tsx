@@ -7,13 +7,44 @@ import { CartButton } from "@/components/commerce/Commerce";
 import { VideoFeed, type FeedEntry } from "@/components/feed/VideoFeed";
 import { apiGet, DEMO_MODE } from "@/lib/api";
 import { demoProducts, demoRooms, demoVideos } from "@/lib/demo";
+import { useNow } from "@/lib/clock";
+import { nextShow, showSeller } from "@/lib/shows";
 import { AskScopie } from "./AskScopie";
 import { CornerNav, type PanelKind } from "./CornerNav";
 import { CreatePanel } from "./CreatePanel";
 import { Panel } from "./Panel";
 import { ProfilePanel } from "./ProfilePanel";
 import { SearchPanel } from "./SearchPanel";
+import { ShowsPanel } from "./ShowsPanel";
 import { WelcomeGate } from "./WelcomeGate";
+
+/**
+ * The appointment banner: quietly present only when a show is live or less
+ * than 24h away. Isolated so its 1s clock never re-renders the feed.
+ */
+function TonightChip({ onOpen }: { onOpen: () => void }) {
+  const now = useNow(30_000);
+  const occ = nextShow(now);
+  const msTo = occ.startMs - now;
+  if (occ.state !== "live" && msTo > 24 * 3600000) return null;
+  const seller = showSeller(occ.slot);
+  const label =
+    occ.state === "live"
+      ? `Live · ${occ.slot.title}`
+      : msTo < 3600000
+        ? `${occ.slot.title} · ${Math.max(1, Math.round(msTo / 60000))} min`
+        : `Tonight · ${occ.slot.title}`;
+  return (
+    <button
+      className="tonight-chip"
+      onClick={onOpen}
+      aria-label={`${occ.slot.title} by ${seller?.name ?? "Scopie"} — see the droplist`}
+    >
+      {occ.state === "live" && <span className="dot" aria-hidden="true" />}
+      {label}
+    </button>
+  );
+}
 
 // Real content frames, not abstract art — a live card must look alive.
 const LIVE_POSTERS = [
@@ -72,7 +103,7 @@ export function Surface() {
     if (typeof window === "undefined") return null;
     try {
       const p = new URLSearchParams(window.location.search).get("panel");
-      return p === "search" || p === "create" || p === "ask" || p === "profile" ? p : null;
+      return p === "search" || p === "create" || p === "ask" || p === "profile" || p === "shows" ? p : null;
     } catch {
       return null;
     }
@@ -147,6 +178,7 @@ export function Surface() {
             <Wordmark color="#ffffff" />
           </span>
         </span>
+        <TonightChip onOpen={() => setPanel("shows")} />
         {entries.length > 0 ? (
           <VideoFeed entries={entries} products={products} initialVideoId={initialVideoId} />
         ) : (
@@ -164,15 +196,24 @@ export function Surface() {
       {panel && (
         <Panel
           title={
-            panel === "ask" ? "Ask Scopie" : panel === "search" ? "Discover" : panel === "create" ? "Create" : "Scopay"
+            panel === "ask"
+              ? "Ask Scopie"
+              : panel === "search"
+                ? "Discover"
+                : panel === "create"
+                  ? "Create"
+                  : panel === "shows"
+                    ? "Shows"
+                    : "Scopay"
           }
           right={panel === "search" ? <CartButton /> : undefined}
           onClose={() => setPanel(null)}
         >
           {panel === "ask" && <AskScopie initialQuery={askSeed} />}
-          {panel === "search" && <SearchPanel onAsk={openAsk} />}
+          {panel === "search" && <SearchPanel onAsk={openAsk} onShows={() => setPanel("shows")} />}
           {panel === "create" && <CreatePanel onDone={() => setPanel(null)} />}
           {panel === "profile" && <ProfilePanel />}
+          {panel === "shows" && <ShowsPanel />}
         </Panel>
       )}
 

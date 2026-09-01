@@ -75,9 +75,11 @@ const mael = (id: string, name: string, priceSen: number): Product =>
 const jom = (id: string, name: string, variant: string, priceSen: number, tags: string[], img?: string): Product =>
   p(id, "jomkaki", `JomKaki — ${name}`, variant, priceSen, img, tags);
 
-/* Glimsy × Amanina Zakaria — creator closet (demo pricing pending RM list). */
+/* Glimsy × Amanina Zakaria — creator closet. Their repo prices are IDR-only,
+   so RM figures are PREVIEW pricing pending the merchant's list — and the
+   variant says so on every card (honesty rule). */
 const gl = (id: string, name: string, badge: string, priceSen: number, img?: string): Product =>
-  p(id, "glimsy", name, badge, priceSen, img ? `/products/glimsy/${img}` : undefined, ["fashion", "hijab", "modest", "creator", "preloved"]);
+  p(id, "glimsy", name, `${badge} · preview pricing`, priceSen, img ? `/products/glimsy/${img}` : undefined, ["fashion", "hijab", "modest", "creator", "preloved"]);
 
 /* BINA+ — fixed-scope design & build ("from" pricing, free site visit). */
 const bina = (id: string, name: string, variant: string, priceSen: number, img: string): Product =>

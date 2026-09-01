@@ -530,6 +530,8 @@ export default function LiveRoomPage() {
               Live · {compact.format(room.viewerCount)}
             </span>
           )}
+          {/* Simulated show — labeled, always (the Whatnot Rehearsal precedent). */}
+          {DEMO_MODE && <span className="rehearsal-chip">Rehearsal</span>}
         </span>
       </header>
 
