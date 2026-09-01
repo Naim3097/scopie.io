@@ -31,6 +31,8 @@ const two = (n: number) => String(n).padStart(2, "0");
 
 function MalamDropClock() {
   const now = useNow();
+  // Clock is client-only (no SSR wall-clock agreement) — hold the space.
+  if (now === null) return <div className="lp-clock-wrap" aria-hidden="true" />;
   const occ = nextOccurrence(SHOW_SLOTS[0]!, now);
   const c = countdownTo(occ.startMs, now);
   const live = occ.state === "live";
@@ -73,6 +75,25 @@ function MalamDropClock() {
         </>
       )}
     </div>
+  );
+}
+
+/** "Also this week" — day names shift with the wall-clock, so client-only. */
+function WeekSlots() {
+  const now = useNow(60_000);
+  if (now === null) return null;
+  return (
+    <p className="lp-ritual-slots">
+      Also this week: {SHOW_SLOTS.slice(1).map((s, i) => {
+        const seller = demoSellers[s.sellerId]?.name ?? s.sellerId;
+        return (
+          <span key={s.id}>
+            {i > 0 && " · "}
+            <b>{seller}</b> {formatSlotTime(nextOccurrence(s, now))}
+          </span>
+        );
+      })}
+    </p>
   );
 }
 
@@ -215,17 +236,7 @@ export default function WelcomePage() {
           Put it in your calendar; your phone reminds you 15 minutes before showtime.
         </p>
         <MalamDropClock />
-        <p className="lp-ritual-slots">
-          Also this week: {SHOW_SLOTS.slice(1).map((s, i) => {
-            const seller = demoSellers[s.sellerId]?.name ?? s.sellerId;
-            return (
-              <span key={s.id}>
-                {i > 0 && " · "}
-                <b>{seller}</b> {formatSlotTime(nextOccurrence(s, Date.now()))}
-              </span>
-            );
-          })}
-        </p>
+        <WeekSlots />
       </section>
 
       {/* the host */}

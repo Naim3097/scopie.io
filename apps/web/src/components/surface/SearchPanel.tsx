@@ -18,6 +18,7 @@ type Sort = "trending" | "foryou";
 /** The Upcoming rail — the droplist's front porch inside Discover. */
 function ShowRail({ onShows }: { onShows: () => void }) {
   const now = useNow(1000);
+  if (now === null) return null; // clock is client-only — no SSR drift
   const next = upcomingShows(now, 1).slice(0, 4);
   return (
     <div className="show-rail" role="group" aria-label="Upcoming shows">

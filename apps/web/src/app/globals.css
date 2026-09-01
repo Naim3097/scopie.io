@@ -1652,3 +1652,131 @@ button.hub-mod {
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
   }
 }
+
+/* ── the flash drop ──
+   Quantity leads, the clock supports. The card is the same dark glass as the
+   live chrome; the claimed bar is the drama. Dapat!/Missed is the payoff. */
+.drop-card {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(27, 23, 38, 0.72);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 18px; padding: 10px;
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  animation: drop-in 0.34s cubic-bezier(0.34, 1.45, 0.55, 1);
+}
+@keyframes drop-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.drop-card--live { border-color: rgba(148, 133, 235, 0.55); }
+.drop-card--ended { opacity: 0.82; }
+.drop-thumb {
+  flex: none; width: 52px; height: 52px; border-radius: 12px; object-fit: cover;
+}
+.drop-body {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.drop-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.09em;
+  color: var(--lilac);
+}
+.drop-count { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.drop-headline {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+}
+.drop-headline b { font-size: 14.5px; }
+.drop-headline .drop-count { color: rgba(255, 255, 255, 0.85); }
+.drop-title {
+  font-size: 12.5px; color: rgba(255, 255, 255, 0.82);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.drop-meta { font-size: 12px; color: rgba(255, 255, 255, 0.66); }
+.drop-price { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.drop-price s {
+  margin-left: 7px;
+  font-weight: 600; color: rgba(255, 255, 255, 0.55);
+}
+.drop-bar {
+  display: block; height: 6px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+  margin: 3px 0 2px;
+}
+.drop-bar-fill {
+  display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width 0.9s ease;
+}
+.drop-claim { width: auto; padding: 11px 18px; font-size: 14px; flex: none; }
+.drop-claim--off { opacity: 0.55; }
+/* a live drop shrinks the chat so the card never buries the stage */
+.ls-bottom:has(.drop-card) .ls-chat { max-height: 17dvh; }
+
+/* small feed-card tag: a drop window is open in this room */
+.drop-tag {
+  display: inline-flex; align-items: center;
+  background: rgba(105, 90, 205, 0.92); color: #fff;
+  font-size: 11px; font-weight: 800;
+  border-radius: 999px; padding: 4px 10px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* the result moment */
+.drop-result {
+  position: fixed; inset: 0; z-index: 75;
+  display: grid; place-items: center;
+  padding: 24px;
+  background: rgba(16, 13, 26, 0.62);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  animation: drop-fade 0.2s ease;
+}
+@keyframes drop-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.drop-result-card {
+  width: min(340px, 92vw);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: #fff; color: var(--ink);
+  border-radius: 26px; padding: 26px 22px 20px;
+  text-align: center;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+  animation: drop-pop 0.4s cubic-bezier(0.34, 1.5, 0.55, 1);
+}
+@keyframes drop-pop {
+  from { opacity: 0; transform: translateY(20px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+.drop-result-card img {
+  width: 96px; height: 96px; border-radius: 20px; object-fit: cover;
+  margin-bottom: 6px;
+}
+.drop-result-word { font-size: 27px; letter-spacing: -0.01em; }
+.drop-result-card--missed .drop-result-word { color: var(--muted); }
+.drop-result-name { font-size: 14px; color: var(--muted); }
+.drop-result-price { font-size: 14.5px; font-weight: 800; }
+.drop-result-actions {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  margin-top: 14px; width: 100%;
+}
+.drop-result-actions .btn { min-width: 200px; }
+.drop-result-share {
+  background: none; border: none; padding: 6px;
+  font-size: 13.5px; font-weight: 700; color: var(--accent);
+  transition: opacity var(--t-press) ease;
+}
+.drop-result-share:active { opacity: 0.6; }
+.drop-result .rehearsal-chip {
+  margin-top: 10px;
+  background: rgba(27, 23, 38, 0.06); color: var(--muted);
+  border-color: rgba(27, 23, 38, 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drop-card, .drop-result, .drop-result-card { animation: none; }
+  .drop-bar-fill { transition: none; }
+}

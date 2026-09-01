@@ -12,6 +12,10 @@ import { connectViewer, type ViewerConnection } from "@/lib/live";
 import { HelmetMark, Wordmark } from "@/components/Brand";
 import { CartButton, useCommerce } from "@/components/commerce/Commerce";
 import { Hero, StrokeIcon } from "@/components/Glyph";
+import { DropResult, FlashDrop } from "@/components/live/FlashDrop";
+import { useCart } from "@/lib/cart";
+import type { DropPhase } from "@/lib/drops";
+import { nextShow, formatSlotTime } from "@/lib/shows";
 import { isFollowing, toggleFollow } from "@/lib/social";
 import { track } from "@/lib/events";
 
@@ -65,16 +69,30 @@ export default function LiveRoomPage() {
   const [connectAttempt, setConnectAttempt] = useState(0);
   const [messages, setMessages] = useState<ChatMsg[]>(() => (DEMO_MODE ? demoChatFor(roomId) : []));
   const [draft, setDraft] = useState("");
-  const [dealLeft, setDealLeft] = useState<number | null>(null);
   const [muted, setMuted] = useState(true);
   const [needsTap, setNeedsTap] = useState(false);
   // Social chrome on the surface — local until accounts own the graph.
   const [following, setFollowing] = useState(false);
   const [liked, setLiked] = useState(false);
+  // The drop's result moment (Dapat!/Missed) — one at a time.
+  const [dropResult, setDropResult] = useState<{ kind: "won" | "missed"; product: Product; priceSen: number } | null>(
+    null,
+  );
+  const cart = useCart();
+  // Pitch/demo override: /live/<room>?drop=pre|live|ended pins the phase.
+  const [dropOverride] = useState<DropPhase | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const v = new URLSearchParams(window.location.search).get("drop");
+      return v === "pre" || v === "live" || v === "ended" || v === "idle" ? v : null;
+    } catch {
+      return null;
+    }
+  });
   const chatlogRef = useRef<HTMLDivElement>(null);
   const lastChatIdRef = useRef("0");
   const demoReplyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { openProduct, buyNow } = useCommerce();
+  const { openProduct, openCart, buyNow } = useCommerce();
 
   const roomGone = room === "not_found" || (room !== null && room.status === "ended");
   const polling = !DEMO_MODE && room !== null && room !== "not_found" && room.status !== "ended";
@@ -92,7 +110,6 @@ export default function LiveRoomPage() {
     setMessages(DEMO_MODE ? demoChatFor(roomId) : []);
     lastChatIdRef.current = "0";
     loadFailuresRef.current = 0;
-    setDealLeft(null);
     setRoom(null);
     setMode("pending");
     return () => {
@@ -207,7 +224,6 @@ export default function LiveRoomPage() {
         }
       }
       if (!view) return;
-      if (view.flashDeal) setDealLeft(Math.max(0, Math.floor(view.flashDeal.endsAtStreamMs / 1000)));
       if (view.status !== "live") return;
 
       if (DEMO_MODE) {
@@ -403,13 +419,6 @@ export default function LiveRoomPage() {
     };
   }, [mode]);
 
-  // Deal countdown reaches zero and reads "ended" — never a frozen 00:00:00.
-  useEffect(() => {
-    if (dealLeft === null) return;
-    const t = setInterval(() => setDealLeft((s) => (s === null ? null : Math.max(0, s - 1))), 1000);
-    return () => clearInterval(t);
-  }, [dealLeft !== null]);
-
   const send = async () => {
     const text = draft.trim();
     if (!text) return;
@@ -483,13 +492,11 @@ export default function LiveRoomPage() {
     );
   }
 
-  const dealActive = Boolean(room?.flashDeal) && dealLeft !== null && dealLeft > 0;
-  const hh = Math.floor((dealLeft ?? 0) / 3600);
-  const mm = Math.floor(((dealLeft ?? 0) % 3600) / 60);
-  const ss = (dealLeft ?? 0) % 60;
   // A real room falling back to the sample loop must say so — a viewer must
   // never mistake the demo film for the seller's actual stream.
   const sampleFallback = !DEMO_MODE && mode === "hls";
+  // Drops run only where a config exists, and only while the room is live.
+  const dropsOn = DEMO_MODE && isLive;
 
   return (
     <main className="live-surface">
@@ -609,6 +616,35 @@ export default function LiveRoomPage() {
           ))}
         </div>
 
+        {/* The flash drop — one card, one claim, one shared clock. */}
+        {dropsOn && (
+          <FlashDrop
+            roomId={roomId}
+            forcePhase={dropOverride}
+            onToast={(name, product, remaining) =>
+              setMessages((m) =>
+                [...m, { from: name, text: `claimed ${product.title} — ${remaining} left`, isSystem: false }].slice(
+                  -200,
+                ),
+              )
+            }
+            onClaimed={(claim, cycle) => {
+              // Its own cart line — the drop price must never merge into (or
+              // overwrite) a list-price line of the same product.
+              cart.add({
+                ...cycle.product,
+                id: `${cycle.product.id}__drop`,
+                title: `${cycle.product.title} · Drop`,
+                priceSen: claim.priceSen,
+              });
+              setDropResult({ kind: "won", product: cycle.product, priceSen: claim.priceSen });
+            }}
+            onMissed={(cycle) =>
+              setDropResult({ kind: "missed", product: cycle.product, priceSen: cycle.config.dealPriceSen })
+            }
+          />
+        )}
+
         {pinned && (
           <div className="ls-pin">
             <button
@@ -624,13 +660,6 @@ export default function LiveRoomPage() {
               <span className="grow">
                 <b>{pinned.title}</b>
                 <span className="ls-pin-price">{formatRM(pinned.priceSen)}</span>
-                {room?.flashDeal && (
-                  <span className="deal">
-                    {dealActive
-                      ? `${room.flashDeal.discountPct}% OFF · ${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`
-                      : "Deal ended"}
-                  </span>
-                )}
               </span>
             </button>
             <button
@@ -687,6 +716,21 @@ export default function LiveRoomPage() {
           </button>
         </div>
       </div>
+
+      {/* Dapat! / Missed — the moment the drop resolves for this viewer */}
+      {dropResult && (
+        <DropResult
+          kind={dropResult.kind}
+          product={dropResult.product}
+          priceSen={dropResult.priceSen}
+          nextLabel={`Next show: ${formatSlotTime(nextShow(Date.now()))}`}
+          onCheckout={() => {
+            setDropResult(null);
+            openCart();
+          }}
+          onClose={() => setDropResult(null)}
+        />
+      )}
     </main>
   );
 }

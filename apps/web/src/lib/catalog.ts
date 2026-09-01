@@ -115,7 +115,9 @@ export const demoProducts: Product[] = [
   p("kalima-serra-scallop", "kalima", "Kalima Serra Scallop Abaya", "Cardigan + satin inner · 7 colours", 39500, "/products/kalima/serra-scallop-teal-green.webp", [...kalimaTags, "abaya", "scallop", "nursing"]),
 
   /* ── Sugarbomb ── */
-  sb("sugarbomb-hush-lush", "Hush Lush", "Luscious Collection", 3990, "hush-lush.webp", { matchScore: 98 }),
+  // List price is the merchant's own RM45.90 (their shop shows the RM39.90
+  // sale as a pair) — the drop engine delivers the genuine sale price.
+  sb("sugarbomb-hush-lush", "Hush Lush", "Luscious Collection", 4590, "hush-lush.webp", { matchScore: 98 }),
   sb("sugarbomb-midnight-oud", "Midnight Oud", "Eternal Collection", 5990, "eternal.webp"),
   sb("sugarbomb-ocean-breeze", "Ocean Breeze", "Blast Sports", 3490, "blast.webp"),
   sb("sugarbomb-velvet-rose", "Velvet Rose", "Luscious Collection", 4590, "luscious.webp"),

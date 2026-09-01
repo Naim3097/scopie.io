@@ -1,5 +1,6 @@
 import type { Video, LiveRoom } from "@scopie/core";
 import { demoProducts } from "./catalog";
+import { DROPS } from "./drops";
 
 /** Client-side demo data, used when the API is unreachable (static preview). */
 
@@ -139,9 +140,12 @@ export function demoChatFor(roomId: string): { from: string; text: string; isHos
       { from: "Scopie", text: "Ask me about any product in this show — I'll find it for you ✨", isHost: true },
     ];
   }
-  const dealLine = room?.flashDeal
-    ? `${pinned.title} is ${formatRM(pinned.priceSen)} while the timer runs — ${room.flashDeal.discountPct}% off ✨`
-    : `${pinned.title} is ${formatRM(pinned.priceSen)} — tap the card to grab it ✨`;
+  // Quote the DROP price only where a genuine deal pair exists for this room.
+  const drop = room ? DROPS[room.id] : undefined;
+  const dealLine =
+    drop && drop.dealPriceSen < pinned.priceSen && drop.productId === pinned.id
+      ? `${pinned.title} drops to ${formatRM(drop.dealPriceSen)} when the drop opens — usually ${formatRM(pinned.priceSen)} ✨`
+      : `${pinned.title} is ${formatRM(pinned.priceSen)} — tap the card to grab it ✨`;
   return [
     { from: "Nurul", text: "Love this! 😍" },
     { from: "Aiman", text: "How much is this one?" },
@@ -169,7 +173,7 @@ export function demoHostReply(question: string, pinnedProductId?: string | null)
     null;
 
   if (/deal|discount|promo|diskaun|offer/.test(q)) {
-    return "Yes — 10% off the pinned pick while the timer on screen is running ✨";
+    return "Watch for the drop card — when it's on screen, the price on it is live. First come, first served ✨";
   }
   if (/how much|price|cost|berapa|harga/.test(q) && match) {
     return match.enquiryOnly

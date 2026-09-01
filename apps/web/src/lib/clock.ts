@@ -7,11 +7,16 @@ import { useEffect, useState } from "react";
  * background tabs throttle timers, so every consumer derives its display
  * from ABSOLUTE timestamps against Date.now(), re-synced the instant the
  * app becomes visible again (the PWA-reopen case).
+ *
+ * Returns null until mounted: server HTML and client hydration can never
+ * agree on a wall-clock, so time-derived UI must render nothing on the
+ * server (React #418 otherwise). The first real value lands within a frame.
  */
-export function useNow(tickMs = 1000): number {
-  const [now, setNow] = useState(() => Date.now());
+export function useNow(tickMs = 1000): number | null {
+  const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     const tick = () => setNow(Date.now());
+    tick();
     const t = setInterval(tick, tickMs);
     const onVisible = () => {
       if (document.visibilityState === "visible") tick();

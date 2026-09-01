@@ -24,6 +24,7 @@ import { WelcomeGate } from "./WelcomeGate";
  */
 function TonightChip({ onOpen }: { onOpen: () => void }) {
   const now = useNow(30_000);
+  if (now === null) return null; // clock is client-only — no SSR drift
   const occ = nextShow(now);
   const msTo = occ.startMs - now;
   if (occ.state !== "live" && msTo > 24 * 3600000) return null;

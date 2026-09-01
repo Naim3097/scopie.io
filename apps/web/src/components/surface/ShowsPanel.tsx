@@ -85,6 +85,7 @@ function ShowCard({ occ, now }: { occ: Occurrence; now: number }) {
 
 export function ShowsPanel() {
   const now = useNow();
+  if (now === null) return null; // clock is client-only — no SSR drift
   const shows = upcomingShows(now, 3);
   const week = shows.filter((o) => o.startMs - now < 7 * 86400000);
   const later = shows.filter((o) => o.startMs - now >= 7 * 86400000);
