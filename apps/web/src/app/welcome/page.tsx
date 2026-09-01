@@ -152,9 +152,10 @@ export default function WelcomePage() {
             <span className="live-chip">
               <span className="dot" /> Live
             </span>
+            {/* the room's own named host — Kalima's show, kalima.ai on mic */}
             <span className="scopie-chip">
               <HelmetMark size={15} />
-              scopie
+              kalima.ai
             </span>
           </span>
           <span className="lp-phone-chat">
@@ -245,16 +246,25 @@ export default function WelcomePage() {
           <HelmetMark size={92} />
         </div>
         <div>
-          <h2>Meet scopie, the host that knows the catalog.</h2>
+          <h2>Every brand gets its own host. Named after them.</h2>
           <p className="lp-sub">
-            Every answer is grounded in the seller&rsquo;s real product data — prices come from the catalog, never
-            made up. And when the host is AI, it says so. Always. That&rsquo;s not a feature, it&rsquo;s a rule.
+            hoor.ai runs HOOR&rsquo;s try-ons. kalima.ai styles the Raya drops. maelburger.ai calls Smash Night.
+            Every answer is grounded in that seller&rsquo;s real product data — prices come from the catalog, never
+            made up. And the .ai in the name means what it says: the host is AI, disclosed by design.
           </p>
           <ul className="lp-host-points">
-            <li>Answers sizing, stock and price questions live, in BM or English</li>
-            <li>Every AI host is labeled — no pretending</li>
+            <li>Your brand&rsquo;s host answers sizing, stock and price questions live, in BM or English</li>
+            <li>The name is the disclosure — a .ai host never pretends to be human</li>
             <li>Buying always ends with your tap. Money never moves without it</li>
           </ul>
+          <div className="lp-host-family" aria-hidden="true">
+            {["hoor.ai", "kalima.ai", "sugarbomb.ai", "maelburger.ai", "scopie.ai"].map((h) => (
+              <span key={h} className="scopie-chip scopie-chip--ink">
+                <HelmetMark size={15} />
+                {h}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -270,8 +280,8 @@ export default function WelcomePage() {
         </div>
         <div className="lp-final-card lp-final-card--dark">
           <h3>Sell on it</h3>
-          <p>Your brand, a live show, and an AI host that never sleeps — with escrow your buyers can trust and
-          fees that respect your margin.</p>
+          <p>Your brand, a live show, and your own named host — yourbrand.ai — that never sleeps. With escrow
+          your buyers can trust and fees that respect your margin.</p>
           <Link href="/sell" className="btn btn-primary" style={{ width: "auto" }}>
             Start selling
           </Link>

@@ -5,6 +5,8 @@ import { useNow, countdownTo, formatCountdown } from "@/lib/clock";
 import { formatRM } from "@/lib/demo";
 import { CYCLE_MS, enterGiveaway, giveawayState, hasEntered, type GiveawayPhase } from "@/lib/giveaway";
 import { useCart } from "@/lib/cart";
+import { roomHost } from "@/lib/hosts";
+import { award } from "@/lib/scop";
 import { markWinHandled, winHandled } from "@/lib/wins";
 import { useCommerce } from "@/components/commerce/Commerce";
 import { LiveResult } from "./LiveResult";
@@ -84,6 +86,7 @@ export function GiveawayBlock({ roomId, forcePhase, onToast }: Props) {
       title: `${state.product.title} · Giveaway win`,
       priceSen: 0,
     });
+    award("giveaway_win", `scopw:${state.cycleId}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.youWon, state?.cycleId]);
 
@@ -95,7 +98,8 @@ export function GiveawayBlock({ roomId, forcePhase, onToast }: Props) {
     enterGiveaway(state.cycleId);
     enteredRef.current = { cycle: state.cycleId, entered: true };
     setVersion((v) => v + 1);
-    onToast("•", "You're in — winner drawn live 🎁", true);
+    const pts = award("giveaway_enter", `scope:${state.cycleId}`);
+    onToast("•", `You're in — winner drawn live 🎁${pts ? ` +${pts} SCOP` : ""}`, true);
   };
 
   const recent = clock - state.announceAt < 90_000;
@@ -151,6 +155,7 @@ export function GiveawayBlock({ roomId, forcePhase, onToast }: Props) {
           celebrate
           word="Rezeki! 🎁"
           product={product}
+          host={roomHost(roomId)}
           nameLine={product.title}
           priceLine={`Yours free — tonight's giveaway (worth ${formatRM(product.priceSen)})`}
           primaryLabel="Claim — RM 0.00"

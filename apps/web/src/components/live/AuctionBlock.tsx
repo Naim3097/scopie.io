@@ -17,6 +17,8 @@ import {
 } from "@/lib/auction";
 import { useCart } from "@/lib/cart";
 import { useCommerce } from "@/components/commerce/Commerce";
+import { roomHost } from "@/lib/hosts";
+import { award } from "@/lib/scop";
 import { SHOW_SLOTS, nextOccurrence, nextShow, formatSlotTime } from "@/lib/shows";
 import { markWinHandled, winHandled } from "@/lib/wins";
 import { LiveResult } from "./LiveResult";
@@ -173,7 +175,8 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
       title: `${state.product.title} · Auction`,
       priceSen: state.priceSen,
     });
-    onToast("•", `Sold to you — ${formatRM(state.priceSen)} 🔨 Added to your cart.`, true);
+    const pts = award("auction", `scop:${state.cycleId}`);
+    onToast("•", `Sold to you — ${formatRM(state.priceSen)} 🔨 Added to your cart.${pts ? ` +${pts} SCOP` : ""}`, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.youWon, state?.cycleId]);
 
@@ -319,6 +322,7 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
           celebrate
           word="Menang! 🔨"
           product={product}
+          host={roomHost(roomId)}
           nameLine={product.title}
           priceLine={`Hammer price ${formatRM(state.priceSen)}${state.userMaxSen && state.userMaxSen > state.priceSen ? ` — under your ${formatRM(state.userMaxSen)} max` : ""}`}
           primaryLabel="Checkout now"
@@ -335,6 +339,7 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
           celebrate={false}
           word="Outbid"
           product={product}
+          host={roomHost(roomId)}
           nameLine={`Went to ${state.leaderName} for ${formatRM(state.priceSen)}`}
           priceLine={`Next lot: ${formatSlotTime(nextLot)}`}
           primaryLabel="Keep watching"

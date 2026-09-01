@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useNow, countdownTo, formatCountdown } from "@/lib/clock";
 import { AUCTIONS, bidIncrement, readPrebid, writePrebid } from "@/lib/auction";
 import { demoProducts } from "@/lib/catalog";
+import { award, mytDay } from "@/lib/scop";
 import { downloadShowIcs, googleCalendarUrl, whatsappShareUrl } from "@/lib/reminders";
 import {
   upcomingShows,
@@ -71,6 +72,7 @@ function PrebidRow({ roomId, live }: { roomId: string; live: boolean }) {
             onClick={() => {
               writePrebid(roomId, value);
               setArmed(value);
+              award("prebid", `prebid:${roomId}:${mytDay(Date.now())}`);
             }}
           >
             Arm pre-bid

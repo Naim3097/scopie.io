@@ -12,13 +12,16 @@ import { connectViewer, type ViewerConnection } from "@/lib/live";
 import { HelmetMark, Wordmark } from "@/components/Brand";
 import { CartButton, useCommerce } from "@/components/commerce/Commerce";
 import { Hero, StrokeIcon } from "@/components/Glyph";
-import { DropResult, FlashDrop } from "@/components/live/FlashDrop";
+import { FlashDrop } from "@/components/live/FlashDrop";
 import { AuctionBlock } from "@/components/live/AuctionBlock";
 import { GiveawayBlock } from "@/components/live/GiveawayBlock";
+import { LiveResult } from "@/components/live/LiveResult";
 import { useCart } from "@/lib/cart";
 import type { AuctionPhase } from "@/lib/auction";
 import type { GiveawayPhase } from "@/lib/giveaway";
 import type { DropPhase } from "@/lib/drops";
+import { hostAria, roomHost } from "@/lib/hosts";
+import { award, mytDay } from "@/lib/scop";
 import { nextShow, formatSlotTime } from "@/lib/shows";
 import { isFollowing, toggleFollow } from "@/lib/social";
 import { track } from "@/lib/events";
@@ -120,6 +123,8 @@ export default function LiveRoomPage() {
   const demoReplyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { openProduct, openCart, buyNow } = useCommerce();
 
+  // The room's named AI host — every business fronts its own: <business>.ai.
+  const host = roomHost(roomId);
   const roomGone = room === "not_found" || (room !== null && room.status === "ended");
   const polling = !DEMO_MODE && room !== null && room !== "not_found" && room.status !== "ended";
   const isLive = room !== null && room !== "not_found" && room.status === "live";
@@ -172,6 +177,8 @@ export default function LiveRoomPage() {
   // Join/leave analytics once per room visit — connect retries must not re-fire them.
   useEffect(() => {
     track({ type: "live.join", subjectId: roomId, surface: "live" });
+    // Attendance SCOP: once per room per MYT day.
+    award("attend", `attend:${roomId}:${mytDay(Date.now())}`);
     return () => track({ type: "live.leave", subjectId: roomId, surface: "live" });
   }, [roomId]);
 
@@ -581,9 +588,9 @@ export default function LiveRoomPage() {
           <b>{room ? room.title : "Scopie Live"}</b>
           <span className="ls-host-sub">
             {room?.hostType === "ai" && (
-              <span className="scopie-chip" aria-label="Hosted by Scopie AI — always disclosed">
+              <span className="scopie-chip" aria-label={hostAria(host)}>
                 <HelmetMark size={15} />
-                scopie
+                {host}
               </span>
             )}
             {sampleFallback && <span className="stage-tag ls-sample">Sample preview — live video unavailable</span>}
@@ -636,7 +643,7 @@ export default function LiveRoomPage() {
                 </span>
               )}
               <span className="ls-msg-body">
-                <b>{m.isHost ? "scopie" : m.from}</b>
+                <b>{m.isHost ? host : m.from}</b>
                 <span>
                   {m.text}
                   {m.product && (
@@ -672,6 +679,8 @@ export default function LiveRoomPage() {
                 title: `${cycle.product.title} · Drop`,
                 priceSen: claim.priceSen,
               });
+              const pts = award("drop", cycle.cycleId);
+              if (pts) pushMsg("•", `+${pts} SCOP · drop claimed`, true);
               setDropResult({ kind: "won", product: cycle.product, priceSen: claim.priceSen });
             }}
             onMissed={(cycle) =>
@@ -727,7 +736,7 @@ export default function LiveRoomPage() {
                 if (e.key === "Enter") void send();
               }}
               placeholder="Say something…"
-              aria-label="Chat — Scopie answers questions"
+              aria-label={`Chat — ${host} answers questions`}
             />
             {/* one affordance: the AI spark at rest, send once there's a draft */}
             {draft.trim() ? (
@@ -735,7 +744,7 @@ export default function LiveRoomPage() {
                 <StrokeIcon kind="share" size={16} />
               </button>
             ) : (
-              <span className="ls-say-spark" aria-hidden="true" title="Scopie answers questions here">
+              <span className="ls-say-spark" aria-hidden="true" title={`${host} answers questions here`}>
                 <StrokeIcon kind="spark" size={15} />
               </span>
             )}
@@ -759,16 +768,34 @@ export default function LiveRoomPage() {
       </div>
 
       {/* Dapat! / Missed — the moment the drop resolves for this viewer */}
-      {dropResult && (
-        <DropResult
-          kind={dropResult.kind}
+      {dropResult && dropResult.kind === "won" && (
+        <LiveResult
+          celebrate
+          word="Dapat! 🎉"
           product={dropResult.product}
-          priceSen={dropResult.priceSen}
-          nextLabel={`Next show: ${formatSlotTime(nextShow(Date.now()))}`}
-          onCheckout={() => {
+          host={host}
+          nameLine={dropResult.product.title}
+          priceLine={`Locked at ${formatRM(dropResult.priceSen)}`}
+          primaryLabel="Checkout now"
+          onPrimary={() => {
             setDropResult(null);
             openCart();
           }}
+          shareText={`Dapat! 🎉 ${dropResult.product.title} on Scopie — ${formatRM(dropResult.priceSen)}. Malam Drop, every Thursday 9PM: https://scopie.io/welcome`}
+          onClose={() => setDropResult(null)}
+        />
+      )}
+      {dropResult && dropResult.kind === "missed" && (
+        <LiveResult
+          celebrate={false}
+          word="Missed it"
+          product={dropResult.product}
+          host={host}
+          nameLine={dropResult.product.title}
+          priceLine={`Next show: ${formatSlotTime(nextShow(Date.now()))}`}
+          primaryLabel="Keep watching"
+          onPrimary={() => setDropResult(null)}
+          shareText={`Missed the ${dropResult.product.title} drop 😭 next one: https://scopie.io/?panel=shows`}
           onClose={() => setDropResult(null)}
         />
       )}

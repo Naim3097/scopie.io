@@ -6,6 +6,7 @@ import { API_BASE, DEMO_MODE } from "@/lib/api";
 import { useCommerce } from "@/components/commerce/Commerce";
 import { Hero } from "@/components/Glyph";
 import { useCart } from "@/lib/cart";
+import { readScop, streakDays, type ScopEvent } from "@/lib/scop";
 import { getAuthHeaders } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
 
@@ -23,11 +24,18 @@ function CartRow() {
 export function ProfilePanel() {
   const session = useSession();
   const [scop, setScop] = useState<number | null>(null);
+  const [streak, setStreak] = useState(0);
+  const [ledger, setLedger] = useState<ScopEvent[]>([]);
 
   useEffect(() => {
     if (session.loading) return;
     if (DEMO_MODE) {
-      setScop(1250); // demo showcase value
+      // EARNED, not showcased: the local ledger is the balance (Rehearsal
+      // tier — the wallet backend takes over from here).
+      const store = readScop();
+      setScop(store.balance);
+      setLedger(store.ledger.slice(0, 6));
+      setStreak(streakDays());
       return;
     }
     if (!session.userId && session.authEnabled) return;
@@ -110,12 +118,32 @@ export function ProfilePanel() {
           <div className="v">{scop === null ? "—" : `${scop} SCOP`}</div>
         </div>
         <div className="stat">
+          <div className="k">Streak</div>
+          <div className="v">{streak > 0 ? `🔥 ${streak} day${streak === 1 ? "" : "s"}` : "Start today"}</div>
+        </div>
+        <div className="stat">
           <div className="k">Payments</div>
           <div className="v" style={{ fontSize: 15, fontWeight: 600 }}>
             FPX · DuitNow · e-wallets
           </div>
         </div>
       </div>
+
+      {ledger.length > 0 && (
+        <>
+          <div className="sec-label" style={{ marginTop: 18 }}>
+            HOW YOU EARNED IT
+          </div>
+          <div className="scop-ledger">
+            {ledger.map((e) => (
+              <div key={e.key} className="scop-ledger-row">
+                <span className="grow">{e.note}</span>
+                <b className="num">+{e.pts}</b>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
         <Link href="/sell" className="btn btn-primary" style={{ width: "auto" }}>

@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { Video } from "@scopie/core";
+import { HelmetMark } from "@/components/Brand";
 import { Hero } from "@/components/Glyph";
 import { apiGet, DEMO_MODE } from "@/lib/api";
-import { demoVideos } from "@/lib/demo";
+import { demoSellers, demoVideos } from "@/lib/demo";
+import { aiHostOf, hostAria } from "@/lib/hosts";
 import { isFollowing, toggleFollow } from "@/lib/social";
 
 const compact = Intl.NumberFormat("en-MY", { notation: "compact" });
@@ -76,10 +78,19 @@ export default function CreatorPage() {
           {([...handle][0] ?? "S").toUpperCase()}
         </div>
         <div className="grow">
-          <h1 style={{ fontSize: 22, overflowWrap: "anywhere" }}>@{handle}</h1>
+          <h1 style={{ fontSize: 22, overflowWrap: "anywhere" }}>
+            {demoSellers[handle]?.name ?? `@${handle}`}
+          </h1>
           <div style={{ color: "var(--muted)", fontSize: 13.5 }}>
             {compact.format(followerBase + (following ? 1 : 0))} followers · {compact.format(likeTotal)} likes
           </div>
+          {/* A business account fronts its own named AI host: <business>.ai */}
+          {demoSellers[handle] && (
+            <span className="scopie-chip scopie-chip--ink" style={{ marginTop: 6 }} aria-label={hostAria(aiHostOf(handle))}>
+              <HelmetMark size={15} />
+              {aiHostOf(handle)}
+            </span>
+          )}
         </div>
         <button
           className={following ? "btn btn-ghost" : "btn btn-primary"}

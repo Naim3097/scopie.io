@@ -8,6 +8,7 @@ import { VideoFeed, type FeedEntry } from "@/components/feed/VideoFeed";
 import { apiGet, DEMO_MODE } from "@/lib/api";
 import { demoProducts, demoRooms, demoVideos } from "@/lib/demo";
 import { useNow } from "@/lib/clock";
+import { award, mytDay } from "@/lib/scop";
 import { nextShow, showSeller } from "@/lib/shows";
 import { AskScopie } from "./AskScopie";
 import { CornerNav, type PanelKind } from "./CornerNav";
@@ -102,6 +103,8 @@ export function Surface() {
     } catch {
       /* storage unavailable — plain feed */
     }
+    // The daily check-in: showing up is worth something (once per MYT day).
+    award("checkin", `checkin:${mytDay(Date.now())}`);
   }, []);
 
   useEffect(() => {

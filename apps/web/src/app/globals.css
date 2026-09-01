@@ -264,6 +264,27 @@ button { font: inherit; cursor: pointer; }
   white-space: nowrap;
 }
 /* Simulated commerce is always labeled — Whatnot's own "Rehearsal" term. */
+/* the chip on light pages: violet wash instead of white-on-white */
+.scopie-chip--ink {
+  background: rgba(105, 90, 205, 0.1);
+  border: 1px solid rgba(105, 90, 205, 0.22);
+}
+
+/* the SCOP ledger — how you earned it */
+.scop-ledger {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--line); border-radius: 16px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.scop-ledger-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px;
+  font-size: 13.5px; color: var(--ink);
+}
+.scop-ledger-row + .scop-ledger-row { border-top: 1px solid var(--line); }
+.scop-ledger-row b { color: var(--accent); font-variant-numeric: tabular-nums; }
+
 .rehearsal-chip {
   display: inline-flex; align-items: center;
   background: rgba(27, 23, 38, 0.4); color: rgba(255, 255, 255, 0.85);
@@ -1609,6 +1630,7 @@ button.hub-mod {
 }
 .lp-host-points { margin: 16px 0 0; padding-left: 20px; color: var(--muted); font-size: 14.5px; }
 .lp-host-points li { margin: 6px 0; }
+.lp-host-family { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .lp-final {
   display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
   padding-bottom: 70px;

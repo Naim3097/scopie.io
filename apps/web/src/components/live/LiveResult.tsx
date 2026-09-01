@@ -2,11 +2,14 @@
 
 import { useEffect } from "react";
 import type { Product } from "@scopie/core";
+import { award, mytDay } from "@/lib/scop";
+import { shareMoment } from "@/lib/sharecard";
 
 /**
- * The shared result moment — auction wins, outbids, giveaway wins all land
- * on the same full-screen beat the drop's Dapat! established. Confetti only
- * on a win; Rehearsal chip always (simulated commerce is labeled, always).
+ * The shared result moment — drop claims, auction wins, outbids, giveaway
+ * wins all land on the same full-screen beat. Confetti only on a win;
+ * Rehearsal chip always (simulated commerce is labeled, always). Sharing
+ * renders the branded card (lib/sharecard.ts) with the disclosure painted in.
  */
 export function LiveResult({
   celebrate,
@@ -14,6 +17,7 @@ export function LiveResult({
   product,
   nameLine,
   priceLine,
+  host,
   primaryLabel,
   onPrimary,
   shareText,
@@ -24,6 +28,7 @@ export function LiveResult({
   product: Product;
   nameLine: string;
   priceLine: string;
+  host?: string;
   primaryLabel: string;
   onPrimary: () => void;
   shareText: string;
@@ -47,7 +52,11 @@ export function LiveResult({
     // The Rehearsal disclosure travels WITH the share — a recipient outside
     // the app must not read a simulated result as a real transaction.
     const text = `${shareText}\n(Scopie Rehearsal preview — simulated show)`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+    award("share", `share:${mytDay(Date.now())}`);
+    void shareMoment(
+      { word, title: product.title, priceLine, host, imageUrl: product.imageUrl },
+      text,
+    );
   };
 
   return (
@@ -62,7 +71,7 @@ export function LiveResult({
             {primaryLabel}
           </button>
           <button className="drop-result-share" onClick={share}>
-            Share on WhatsApp
+            Share the moment
           </button>
           <button className="drop-result-share" onClick={onClose}>
             Keep watching

@@ -11,7 +11,9 @@ import { demoProducts, demoSellers } from "./catalog";
 export interface ShowSlot {
   id: string;
   title: string;
-  /** Named, followable host — drops attached to anonymous brands die (NTWRK). */
+  /** Named, followable host — drops attached to anonymous brands die (NTWRK).
+   *  Every business's host is its own named AI: <business>.ai — the
+   *  disclosure lives in the name (see lib/hosts.ts). */
   host: string;
   sellerId: string;
   /** 0=Sunday … 6=Saturday, in Malaysia time */
@@ -32,7 +34,7 @@ export const SHOW_SLOTS: ShowSlot[] = [
   {
     id: "malam-drop",
     title: "Malam Drop",
-    host: "scopie",
+    host: "scopie.ai",
     sellerId: "sugarbomb",
     weekday: 4, // Thursday
     hour: 21,
@@ -46,7 +48,7 @@ export const SHOW_SLOTS: ShowSlot[] = [
   {
     id: "hoor-tryon",
     title: "Batik Dolu-Dolu Try-On",
-    host: "Aisyah",
+    host: "hoor.ai",
     sellerId: "hoor",
     weekday: 0, // Sunday
     hour: 20,
@@ -60,7 +62,7 @@ export const SHOW_SLOTS: ShowSlot[] = [
   {
     id: "kalima-styling",
     title: "Raya Drop Styling",
-    host: "Zara",
+    host: "kalima.ai",
     sellerId: "kalima",
     weekday: 3, // Wednesday
     hour: 20,
@@ -74,7 +76,7 @@ export const SHOW_SLOTS: ShowSlot[] = [
   {
     id: "mael-smash",
     title: "Smash Night",
-    host: "Mael",
+    host: "maelburger.ai",
     sellerId: "maelburger",
     weekday: 5, // Friday
     hour: 21,

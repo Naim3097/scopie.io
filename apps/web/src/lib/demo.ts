@@ -97,7 +97,9 @@ export const demoRooms: LiveRoom[] = [
   {
     id: "room_hoor",
     title: "HOOR — Batik Dolu-Dolu Try-On",
-    hostType: "seller",
+    // Every business's shows are fronted by its named AI host (hoor.ai) —
+    // no invented humans anywhere on the demo site.
+    hostType: "ai",
     aiDisclosed: true,
     status: "live",
     viewerCount: 640,
@@ -117,7 +119,7 @@ export const demoRooms: LiveRoom[] = [
   {
     id: "room_mael",
     title: "Mael Burger — Smash Night",
-    hostType: "seller",
+    hostType: "ai",
     aiDisclosed: true,
     status: "live",
     viewerCount: 210,

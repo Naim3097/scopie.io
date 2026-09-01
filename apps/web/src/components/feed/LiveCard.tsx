@@ -8,6 +8,7 @@ import { useNow } from "@/lib/clock";
 import { auctionState } from "@/lib/auction";
 import { dropCycle } from "@/lib/drops";
 import { giveawayState } from "@/lib/giveaway";
+import { hostAria, roomHost } from "@/lib/hosts";
 import { formatRM } from "@/lib/demo";
 
 const compact = new Intl.NumberFormat("en-MY", { notation: "compact" });
@@ -44,9 +45,9 @@ export function LiveCard({ room, poster }: { room: LiveRoom; poster: string }) {
         </span>
         <span className="live-card-info">
           {room.hostType === "ai" && (
-            <span className="scopie-chip" aria-label="Hosted by Scopie AI — always disclosed">
+            <span className="scopie-chip" aria-label={hostAria(roomHost(room.id))}>
               <HelmetMark size={15} />
-              scopie
+              {roomHost(room.id)}
             </span>
           )}
           <b>{room.title}</b>
