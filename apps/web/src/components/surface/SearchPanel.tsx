@@ -4,12 +4,40 @@ import { useEffect, useMemo, useState } from "react";
 import type { Product } from "@scopie/core";
 import { StrokeIcon } from "@/components/Glyph";
 import { ProductCard } from "@/components/ProductCard";
+import { useCommerce } from "@/components/commerce/Commerce";
 import { apiGet, DEMO_MODE } from "@/lib/api";
 import { useNow, countdownTo, formatCountdown } from "@/lib/clock";
+import { RAYA_EDIT, collectionProducts } from "@/lib/collections";
 import { demoProducts, formatRM } from "@/lib/demo";
 import { upcomingShows, formatSlotTime, showSeller } from "@/lib/shows";
 
 type Sort = "trending" | "foryou";
+
+/** The seasonal edit — cross-brand merchandising inside Discover. */
+function EditRail() {
+  const { openProduct } = useCommerce();
+  const items = DEMO_MODE ? collectionProducts(RAYA_EDIT).slice(0, 8) : [];
+  if (items.length === 0) return null;
+  return (
+    <>
+      <div className="sec-label" style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+        {RAYA_EDIT.title.toUpperCase()}
+        <span className="edit-rail-sub">curated across brands</span>
+      </div>
+      <div className="edit-rail" role="group" aria-label={RAYA_EDIT.title}>
+        {items.map((p) => (
+          <button key={p.id} className="edit-card" onClick={() => openProduct(p, "search")}>
+            {p.imageUrl && <img src={p.imageUrl} alt="" loading="lazy" />}
+            <span className="edit-card-body">
+              <b>{p.title}</b>
+              <em>{formatRM(p.priceSen)}</em>
+            </span>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
 
 /**
  * Discovery-with-intent: the browse grid, in a panel over the surface.
@@ -83,6 +111,8 @@ export function SearchPanel({ onAsk, onShows }: { onAsk: (query?: string) => voi
 
       <div className="sec-label">UPCOMING SHOWS</div>
       <ShowRail onShows={onShows} />
+
+      <EditRail />
 
       {/* Conversational entry — hands off to the AI personal shopper. */}
       <button className="searchbar" style={{ width: "100%" }} onClick={() => onAsk()}>

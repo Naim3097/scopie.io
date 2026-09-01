@@ -282,8 +282,8 @@ export default function WelcomePage() {
           <h3>Sell on it</h3>
           <p>Your brand, a live show, and your own named host — yourbrand.ai — that never sleeps. With escrow
           your buyers can trust and fees that respect your margin.</p>
-          <Link href="/sell" className="btn btn-primary" style={{ width: "auto" }}>
-            Start selling
+          <Link href="/brands" className="btn btn-primary" style={{ width: "auto" }}>
+            See what brands get
           </Link>
         </div>
       </section>
@@ -299,6 +299,7 @@ export default function WelcomePage() {
         <nav aria-label="Footer">
           <Link href="/">Open the app</Link>
           <Link href="/?panel=shows">Droplist</Link>
+          <Link href="/brands">For brands</Link>
           <Link href="/sell">Sell on Scopie</Link>
         </nav>
         <span className="lp-copy">© 2026 Scopie · Built in Malaysia 🇲🇾</span>

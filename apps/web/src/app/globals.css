@@ -1970,3 +1970,207 @@ button.hub-mod {
   .drop-bar-fill { transition: none; }
   .auction-urgent, .giveaway-drum { animation: none; }
 }
+
+/* ── the host widget (white-label embed) ──
+   A business's named .ai host as a self-contained surface — served bare at
+   /embed/<sellerId>, demoed live inside /brands' mock storefront. */
+.hw-page {
+  min-height: 100dvh;
+  display: grid; place-items: center;
+  background: transparent;
+  padding: 10px;
+}
+.hw {
+  display: flex; flex-direction: column;
+  width: min(380px, 100%);
+  height: min(520px, calc(100dvh - 20px));
+  background: var(--surface, #fff);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: 0 14px 44px rgba(27, 23, 38, 0.16);
+  overflow: hidden;
+}
+.hw-top {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #695ACD, #4a3d99);
+  color: #fff;
+}
+.hw-top .grow { display: flex; flex-direction: column; min-width: 0; }
+.hw-top b { font-size: 15px; }
+.hw-powered { font-size: 10.5px; color: rgba(255, 255, 255, 0.75); }
+.hw-orb {
+  flex: none; width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  display: grid; place-items: center;
+}
+.hw-log {
+  flex: 1; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px;
+}
+.hw-msg { display: flex; flex-direction: column; gap: 6px; max-width: 86%; }
+.hw-msg--you { align-self: flex-end; align-items: flex-end; }
+.hw-msg--host { align-self: flex-start; }
+.hw-bubble {
+  padding: 9px 13px; border-radius: 16px;
+  font-size: 13.5px; line-height: 1.45;
+}
+.hw-msg--you .hw-bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 5px; }
+.hw-msg--host .hw-bubble { background: rgba(105, 90, 205, 0.08); color: var(--ink); border-bottom-left-radius: 5px; }
+.hw-product {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px; border-radius: 14px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--line);
+  text-decoration: none; color: var(--ink);
+  transition: opacity var(--t-press) ease;
+}
+.hw-product:active { opacity: 0.7; }
+.hw-product img { flex: none; width: 42px; height: 42px; border-radius: 10px; object-fit: cover; }
+.hw-product .grow { display: flex; flex-direction: column; min-width: 0; }
+.hw-product b { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hw-product em { font-style: normal; font-size: 12px; font-weight: 700; color: var(--muted); }
+.hw-product-go { flex: none; font-size: 11.5px; font-weight: 800; color: var(--accent); }
+.hw-chips { display: flex; gap: 7px; padding: 0 14px 8px; flex-wrap: wrap; }
+.hw-chip {
+  border: 1px solid var(--line-strong); background: none; color: var(--ink);
+  border-radius: 999px; padding: 6px 12px;
+  font-size: 12px; font-weight: 700;
+  transition: background var(--t-press) ease;
+}
+.hw-chip:active { background: rgba(105, 90, 205, 0.1); }
+.hw-inputrow {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+}
+.hw-inputrow input {
+  flex: 1; min-width: 0;
+  border: none; outline: none; background: none;
+  font-size: 16px; color: var(--ink);
+}
+.hw-send {
+  flex: none; width: 38px; height: 38px; border-radius: 50%;
+  border: none; background: var(--accent); color: #fff;
+  font-size: 15px;
+  transition: opacity var(--t-press) ease;
+}
+.hw-send:active { opacity: 0.75; }
+.hw .rehearsal-chip { flex: none; }
+
+/* ── the brands pitch (/brands) ── */
+.bp-hero {
+  text-align: center;
+  padding: 46px 0 10px;
+  display: flex; flex-direction: column; gap: 18px; align-items: center;
+}
+.bp-hero h1 { font-size: clamp(32px, 6vw, 52px); line-height: 1.08; letter-spacing: -0.02em; margin: 0; }
+.bp-you { border-style: dashed; border-color: rgba(105, 90, 205, 0.55); }
+.bp-gets { padding: 44px 0 8px; }
+.bp-get-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  margin-top: 22px;
+}
+.bp-get {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
+  padding: 20px 18px;
+  box-shadow: var(--shadow-card);
+}
+.bp-get b { font-size: 15.5px; }
+.bp-get p { margin: 8px 0 0; color: var(--muted); font-size: 13.5px; line-height: 1.55; }
+.bp-embed {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: center;
+  padding: 50px 0;
+}
+.bp-code {
+  display: inline-block; margin-top: 14px;
+  background: #241d3d; color: #CBBDF7;
+  border-radius: 12px; padding: 10px 14px;
+  font-size: 13px;
+  overflow-x: auto; max-width: 100%;
+}
+.bp-browser {
+  border: 1px solid var(--line-strong); border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(27, 23, 38, 0.18);
+  background: var(--surface);
+}
+.bp-browser-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 9px 12px;
+  background: rgba(27, 23, 38, 0.05);
+  border-bottom: 1px solid var(--line);
+}
+.bp-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(27, 23, 38, 0.18); }
+.bp-url {
+  margin-left: 8px; flex: 1;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 12px;
+  font-size: 11.5px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bp-frame { display: block; width: 100%; height: 480px; border: none; }
+.bp-raya { padding: 30px 0 10px; display: flex; flex-direction: column; gap: 14px; }
+.bp-raya-rail {
+  display: flex; gap: 12px;
+  overflow-x: auto; scrollbar-width: none;
+  padding: 8px 2px 14px;
+}
+.bp-raya-rail::-webkit-scrollbar { display: none; }
+.bp-raya-card {
+  flex: none; width: 152px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+  padding: 0; overflow: hidden; text-align: left;
+  transition: transform var(--t-press) ease;
+}
+.bp-raya-card:active { transform: scale(0.97); }
+.bp-raya-card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.bp-raya-body { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; }
+.bp-raya-body b { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bp-raya-body em { font-style: normal; font-size: 12.5px; font-weight: 800; color: var(--accent); }
+.bp-ritual { padding: 26px 0; }
+.bp-shows { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 20px; }
+.bp-show {
+  display: flex; flex-direction: column; gap: 3px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+  padding: 14px;
+  text-decoration: none; color: var(--ink);
+  transition: transform var(--t-press) ease;
+}
+.bp-show:active { transform: scale(0.97); }
+.bp-show b { font-size: 14px; }
+.bp-show span { font-size: 12px; color: var(--muted); }
+.bp-show em { font-style: normal; font-size: 12.5px; font-weight: 800; color: var(--accent); margin-top: 4px; }
+.bp-cta {
+  text-align: center; padding: 40px 0 70px;
+  display: flex; flex-direction: column; gap: 16px; align-items: center;
+}
+
+/* the seasonal edit rail inside Discover */
+.edit-rail-sub { font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--faint); font-size: 11.5px; }
+.edit-rail {
+  display: flex; gap: 10px;
+  overflow-x: auto; scrollbar-width: none;
+  margin: 0 -18px 16px; padding: 2px 18px 6px;
+}
+.edit-rail::-webkit-scrollbar { display: none; }
+.edit-card {
+  flex: none; width: 128px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+  padding: 0; overflow: hidden; text-align: left;
+  transition: transform var(--t-press) ease;
+}
+.edit-card:active { transform: scale(0.96); }
+.edit-card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.edit-card-body { display: flex; flex-direction: column; gap: 1px; padding: 8px 10px; }
+.edit-card-body b { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.edit-card-body em { font-style: normal; font-size: 12px; font-weight: 800; color: var(--accent); }
+
+@media (max-width: 760px) {
+  .bp-get-grid { grid-template-columns: 1fr; }
+  .bp-embed { grid-template-columns: 1fr; }
+  .bp-shows { grid-template-columns: 1fr 1fr; }
+  .bp-frame { height: 440px; }
+}
