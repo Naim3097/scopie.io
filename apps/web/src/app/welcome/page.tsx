@@ -40,7 +40,7 @@ function MalamDropClock() {
     <div className="lp-clock-wrap">
       {live ? (
         <Link href={`/live/${occ.slot.roomId}`} className="btn btn-primary lp-live-cta">
-          <span className="dot" aria-hidden="true" /> Live now — join the drop ›
+          <span className="dot" aria-hidden="true" /> Live now — join the drop
         </Link>
       ) : (
         <>
@@ -66,7 +66,7 @@ function MalamDropClock() {
           </div>
           <div className="lp-clock-actions">
             <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => downloadShowIcs(occ)}>
-              ⏰ Remind me
+              Remind me
             </button>
             <a className="lp-ghost-btn" href={whatsappShareUrl(occ)} target="_blank" rel="noreferrer">
               Share on WhatsApp
@@ -118,22 +118,22 @@ export default function WelcomePage() {
       {/* hero */}
       <section className="lp-hero">
         <div className="lp-hero-copy">
-          <p className="sec-label">MALAYSIA&rsquo;S AI SHOPPING NETWORK</p>
+          <p className="sec-label">Malaysia&rsquo;s AI shopping network</p>
           <h1>
             Shopping, live.
             <br />
             Hosted by <span className="brand-name">AI</span>.
           </h1>
           <p className="lp-sub">
-            Real Malaysian brands, live shows with an AI host that actually answers — sizes, prices, stock — and
-            checkout where your money is held until your order arrives. One screen. No app store needed.
+            Real Malaysian brands, live shows with an AI host that answers sizing, price and stock, and checkout
+            that holds your money until your order arrives. One screen, no app store.
           </p>
           <div className="lp-cta-row">
             <Link href="/" className="btn btn-primary" style={{ width: "auto" }}>
               Open Scopie — it&rsquo;s free
             </Link>
             <a href="#droplist" className="lp-ghost-btn">
-              See the droplist ↓
+              See the droplist
             </a>
           </div>
           <p className="lp-note">Works in your browser · installs from Safari &amp; Chrome</p>
@@ -160,7 +160,7 @@ export default function WelcomePage() {
           </span>
           <span className="lp-phone-chat">
             <span className="lp-bubble lp-bubble-user">Ada size apa untuk kurta ni?</span>
-            <span className="lp-bubble lp-bubble-ai">Kurta Zaid comes in S–XXL, 6 colours — RM 99.00 ✨</span>
+            <span className="lp-bubble lp-bubble-ai">Kurta Zaid comes in S–XXL, 6 colours — RM 99.00</span>
           </span>
           <span className="lp-phone-pin">
             <img src="/products/kalima/kurta-zaid-brick.webp" alt="" />
@@ -175,7 +175,7 @@ export default function WelcomePage() {
 
       {/* brand wall */}
       <section className="lp-brands">
-        <p className="sec-label" style={{ textAlign: "center" }}>16 MALAYSIAN BRANDS, ALREADY HOME</p>
+        <p className="sec-label" style={{ textAlign: "center" }}>16 Malaysian brands, already home</p>
         <div className="lp-brand-wall">
           {BRAND_LOGOS.map(([id, src]) => (
             <span key={id} className="lp-brand-tile" title={demoSellers[id]?.name}>
@@ -226,15 +226,15 @@ export default function WelcomePage() {
 
       {/* the ritual */}
       <section className="lp-ritual" id="droplist">
-        <p className="sec-label" style={{ color: "var(--lilac)" }}>THE RITUAL</p>
+        <p className="sec-label" style={{ color: "var(--lilac)" }}>The ritual</p>
         <h2>
           Malam Drop.
           <br />
           Every Thursday, 9PM.
         </h2>
         <p className="lp-ritual-sub">
-          One night a week, the best of Scopie drops live — limited pieces, real deals, first come first served.
-          Put it in your calendar; your phone reminds you 15 minutes before showtime.
+          One night a week, brands drop limited pieces live — first come, first served. Add it to your calendar
+          and your phone reminds you 15 minutes before.
         </p>
         <MalamDropClock />
         <WeekSlots />
@@ -249,8 +249,8 @@ export default function WelcomePage() {
           <h2>Every brand gets its own host. Named after them.</h2>
           <p className="lp-sub">
             hoor.ai runs HOOR&rsquo;s try-ons. kalima.ai styles the Raya drops. maelburger.ai calls Smash Night.
-            Every answer is grounded in that seller&rsquo;s real product data — prices come from the catalog, never
-            made up. And the .ai in the name means what it says: the host is AI, disclosed by design.
+            Every answer comes from that seller&rsquo;s own catalog — prices are read from it, never made up.
+            And the .ai in the name is the disclosure: the host is AI.
           </p>
           <ul className="lp-host-points">
             <li>Your brand&rsquo;s host answers sizing, stock and price questions live, in BM or English</li>
@@ -272,16 +272,16 @@ export default function WelcomePage() {
       <section className="lp-final">
         <div className="lp-final-card">
           <h3>Shop it</h3>
-          <p>Open scopie.io, then add it to your home screen — Share → &ldquo;Add to Home Screen&rdquo; on iPhone,
-          &ldquo;Install app&rdquo; on Android. No app store, no wait.</p>
+          <p>Open scopie.io, then add it to your home screen — Share, then &ldquo;Add to Home Screen&rdquo; on
+          iPhone, &ldquo;Install app&rdquo; on Android. No app store, no wait.</p>
           <Link href="/" className="btn btn-primary" style={{ width: "auto" }}>
             Open Scopie
           </Link>
         </div>
         <div className="lp-final-card lp-final-card--dark">
           <h3>Sell on it</h3>
-          <p>Your brand, a live show, and your own named host — yourbrand.ai — that never sleeps. With escrow
-          your buyers can trust and fees that respect your margin.</p>
+          <p>Your brand, a live show, and your own named host — yourbrand.ai. Orders sit in escrow until
+          delivery, the same rule shoppers get.</p>
           <Link href="/brands" className="btn btn-primary" style={{ width: "auto" }}>
             See what brands get
           </Link>
@@ -302,7 +302,7 @@ export default function WelcomePage() {
           <Link href="/brands">For brands</Link>
           <Link href="/sell">Sell on Scopie</Link>
         </nav>
-        <span className="lp-copy">© 2026 Scopie · Built in Malaysia 🇲🇾</span>
+        <span className="lp-copy">© 2026 Scopie · Built in Malaysia</span>
       </footer>
     </main>
   );

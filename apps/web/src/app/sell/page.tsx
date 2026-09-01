@@ -74,7 +74,7 @@ export default function SellPage() {
     return (
       <main className="page page--pad" style={{ textAlign: "center", paddingTop: 100 }}>
         <div className="buffering" style={{ position: "static" }}>
-          <div className="ring" style={{ borderTopColor: "var(--accent)", borderColor: "var(--line-strong)" }}></div>
+          <div className="ring ring--ink"></div>
         </div>
       </main>
     );
@@ -84,9 +84,9 @@ export default function SellPage() {
     return (
       <main className="page page--pad">
         <div className="hero-banner" style={{ marginTop: 16 }}>
-          <div className="sec-label">SELLER CENTRE</div>
-          <h1>Commerce, reimagined.</h1>
-          <p>Open your shop in seconds. List products, go live, and get paid in RM.</p>
+          <div className="sec-label">Seller centre</div>
+          <h1>Sell on Scopie</h1>
+          <p>List products, go live, get paid in RM.</p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 400 }}>
           <input
@@ -119,11 +119,11 @@ export default function SellPage() {
     <main className="page page--pad">
       <div className="topbar" style={{ padding: 0 }}>
         <div>
-          <div className="sec-label">SELLER CENTRE</div>
+          <div className="sec-label">Seller centre</div>
           <h1 style={{ fontSize: 24 }}>{seller.shopName}</h1>
         </div>
         <span className="chip-good" style={{ alignSelf: "center" }}>
-          <span aria-hidden="true">●</span> {seller.status}
+          {seller.status}
         </span>
       </div>
 

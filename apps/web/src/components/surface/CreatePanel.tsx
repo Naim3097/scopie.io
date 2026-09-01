@@ -82,7 +82,7 @@ export function CreatePanel({ onDone }: { onDone: () => void }) {
         // ONE array instance end to end — two fresh `?:` arrays here once
         // discarded the unshifted post while still claiming "Posted!".
         const mine = Array.isArray(raw) ? raw : [];
-        mine.unshift({ caption: caption.trim() || "My first Scopie video ✨", at: Date.now() });
+        mine.unshift({ caption: caption.trim() || "My first Scopie video", at: Date.now() });
         localStorage.setItem("scopie_demo_myvideos", JSON.stringify(mine.slice(0, 20)));
       } catch {
         /* best-effort */
@@ -159,7 +159,7 @@ export function CreatePanel({ onDone }: { onDone: () => void }) {
       setError(
         (err as Error).message === "upload cancelled"
           ? "Upload cancelled."
-          : "Something went wrong — your video wasn't posted. Please try again.",
+          : "Your video wasn't posted. Try again.",
       );
     }
   };
@@ -188,10 +188,10 @@ export function CreatePanel({ onDone }: { onDone: () => void }) {
     return (
       <div className="panel-pad" style={{ textAlign: "center", paddingTop: 60 }}>
         {processing ? <Hero kind="camera" /> : <Hero kind="check" tone="good" />}
-        <h2 className="page-title">{processing ? "Processing your video" : "Posted!"}</h2>
+        <h2 className="page-title">{processing ? "Processing your video" : "Posted"}</h2>
         <p className="page-sub">
           {processing
-            ? "We're preparing it for every screen — it appears in the feed once it's ready and reviewed. Track it below under My uploads."
+            ? "It appears in the feed once it's ready and reviewed. Track it below under My uploads."
             : "Your video is live in the feed."}
         </p>
         <button className="btn btn-primary" style={{ width: "auto" }} onClick={onDone}>
@@ -206,12 +206,10 @@ export function CreatePanel({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="panel-pad">
-      <h2 className="page-title" style={{ marginTop: 6 }}>
-        Create
-      </h2>
-      <p className="page-sub">Share a moment — or a product the world should see.</p>
+      {/* The panel header already says "Create". */}
+      <p className="panel-lede">Post a clip of you or your product.</p>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 440 }}>
+      <div className="create-form">
         <textarea
           className="auth-input"
           style={{ minHeight: 90, resize: "vertical" }}

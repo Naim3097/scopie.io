@@ -36,7 +36,7 @@ function scopedReply(question: string, sellerId: string): Msg {
   if (/how much|price|cost|berapa|harga/.test(q) && match) {
     return match.enquiryOnly
       ? { from: "host", text: `${match.title} is quoted per order — we'll confirm pricing directly.`, product: match }
-      : { from: "host", text: `${match.title} is ${formatRM(match.priceSen)} ✨`, product: match };
+      : { from: "host", text: `${match.title} is ${formatRM(match.priceSen)}.`, product: match };
   }
   if (/size|saiz|fit|colour|color|warna/.test(q) && match) {
     return {
@@ -48,11 +48,11 @@ function scopedReply(question: string, sellerId: string): Msg {
   if (match) {
     return {
       from: "host",
-      text: `Take a look at ${match.title}${match.enquiryOnly ? "" : ` — ${formatRM(match.priceSen)}`} ✨`,
+      text: `${match.title}${match.enquiryOnly ? "" : ` — ${formatRM(match.priceSen)}`}.`,
       product: match,
     };
   }
-  return { from: "host", text: "Ask me about any product, price or size — I'll find it for you ✨" };
+  return { from: "host", text: "Ask me about any product, price or size." };
 }
 
 const SUGGESTIONS = ["Berapa harga?", "What sizes?", "Delivery?"];
@@ -61,7 +61,7 @@ export function HostWidget({ sellerId }: { sellerId: string }) {
   const seller = demoSellers[sellerId];
   const host = aiHostOf(sellerId);
   const [messages, setMessages] = useState<Msg[]>(() => [
-    { from: "host", text: `Hi! I'm ${host} — ask me anything about ${seller?.name ?? "our"} products ✨` },
+    { from: "host", text: `I'm ${host} — ask me about ${seller?.name ?? "our"} products.` },
   ]);
   const [draft, setDraft] = useState("");
   const logRef = useRef<HTMLDivElement>(null);
@@ -121,7 +121,7 @@ export function HostWidget({ sellerId }: { sellerId: string }) {
                   <b>{m.product.title}</b>
                   <em>{m.product.enquiryOnly ? "Price on request" : formatRM(m.product.priceSen)}</em>
                 </span>
-                <span className="hw-product-go">Scopie ›</span>
+                <span className="hw-product-go">Scopie</span>
               </a>
             )}
           </div>
@@ -148,7 +148,7 @@ export function HostWidget({ sellerId }: { sellerId: string }) {
           aria-label={`Ask ${host}`}
         />
         <button className="hw-send" onClick={() => send(draft)} aria-label="Send">
-          ➤
+          Send
         </button>
       </div>
     </div>

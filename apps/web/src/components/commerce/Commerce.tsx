@@ -272,23 +272,19 @@ function ProductSheet({
     <div>
       {product.imageUrl && <img className="sheet-img" src={product.imageUrl} alt={product.title} />}
       <div className="sheet-body">
-        {typeof product.matchScore === "number" && (
-          <span className="match">
-            <span aria-hidden="true">✦</span> {product.matchScore}% Match
-          </span>
-        )}
         <h2 style={{ fontSize: 21 }}>{product.title}</h2>
         {product.variant && <div className="card-variant" style={{ fontSize: 14 }}>{product.variant}</div>}
         {seller && (
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>
             by <b>{seller.name}</b>
             {seller.verified && (
-              <span style={{ color: "var(--accent)" }} aria-label="Verified seller">
+              <>
                 {" "}
-                ✓
-              </span>
-            )}{" "}
-            · {seller.tagline}
+                <span className="verified-mark">Verified</span>
+              </>
+            )}
+            {" · "}
+            {seller.tagline}
           </div>
         )}
         <div className="sheet-price">{product.enquiryOnly ? "Price on request" : formatRM(product.priceSen)}</div>
@@ -330,7 +326,7 @@ function ProductSheet({
                   setTimeout(() => setFeedback(null), 1800);
                 }}
               >
-                {feedback === "added" ? "Added ✓" : "Add to cart"}
+                {feedback === "added" ? "Added" : "Add to cart"}
               </button>
               <button className="btn btn-primary" style={{ flex: 1, width: "auto" }} onClick={() => onBuy(qty)}>
                 Buy now
@@ -343,7 +339,7 @@ function ProductSheet({
             )}
             {feedback === "added" && (
               <button className="sheet-link" onClick={onViewCart}>
-                View cart →
+                View cart
               </button>
             )}
             <p className="sheet-note">Buyer-protected: your payment is held until the order is delivered.</p>
@@ -514,7 +510,7 @@ function CheckoutSheet({
 
   return (
     <div className="sheet-body">
-      <div className="sec-label">SCOPIE PAY</div>
+      <div className="sec-label">Scopie Pay</div>
       <h2 style={{ fontSize: 20, marginBottom: 12 }}>Confirm &amp; pay</h2>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -565,7 +561,7 @@ function CheckoutSheet({
           : "You'll approve this payment in your bank or e-wallet — no money moves until then."}
       </p>
       <button className="sheet-link" onClick={onBack}>
-        ← Back
+        Back
       </button>
     </div>
   );

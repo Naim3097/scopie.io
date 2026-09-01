@@ -16,40 +16,21 @@ export function ProductCard({ product, surface = "discover" }: { product: Produc
     <div className="card">
       <button className="card-tap" onClick={() => openProduct(product, surface)} aria-label={`View ${product.title}`}>
         {product.imageUrl && <img src={product.imageUrl} alt="" loading="lazy" />}
-        <span className="card-body" style={{ display: "block", paddingBottom: 0 }}>
-          {typeof product.matchScore === "number" && (
-            <span className="match">
-              <span aria-hidden="true">✦</span> {product.matchScore}% Match
-            </span>
-          )}
-          <span className="card-title" style={{ display: "block" }}>
-            {product.title}
-          </span>
-          {product.variant && (
-            <span className="card-variant" style={{ display: "block" }}>
-              {product.variant}
-            </span>
-          )}
-          <span className="card-price" style={{ display: "block" }}>
+        <span className="card-body">
+          <span className="card-title">{product.title}</span>
+          {product.variant && <span className="card-variant">{product.variant}</span>}
+          <span className="card-price num">
             {product.enquiryOnly ? "On request" : formatRM(product.priceSen)}
           </span>
         </span>
       </button>
-      <div className="card-body" style={{ paddingTop: 8 }}>
+      <div className="card-foot">
         {product.enquiryOnly ? (
-          <button
-            className="btn btn-ghost"
-            style={{ padding: "11px 16px", fontSize: 14, whiteSpace: "nowrap" }}
-            onClick={() => openProduct(product, surface)}
-          >
+          <button className="btn btn-ghost btn--compact" onClick={() => openProduct(product, surface)}>
             View details
           </button>
         ) : (
-          <button
-            className="btn btn-primary"
-            style={{ padding: "11px 16px", fontSize: 14, whiteSpace: "nowrap" }}
-            onClick={() => buyNow(product, surface)}
-          >
+          <button className="btn btn-ghost btn--compact btn--buy" onClick={() => buyNow(product, surface)}>
             Buy now
           </button>
         )}

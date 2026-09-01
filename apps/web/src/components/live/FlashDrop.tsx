@@ -19,6 +19,8 @@ interface Props {
   onToast: (name: string, product: Product, remaining: number) => void;
   onClaimed: (claim: DropClaim, cycle: DropCycle) => void;
   onMissed: (cycle: DropCycle) => void;
+  /** Lifted so the stage can give this card the product surface. */
+  onPhase?: (phase: DropPhase | null) => void;
 }
 
 const PHASE_OFFSET: Record<DropPhase, number> = {
@@ -28,7 +30,7 @@ const PHASE_OFFSET: Record<DropPhase, number> = {
   ended: 8 * 60_000 + 10_000,
 };
 
-export function FlashDrop({ roomId, forcePhase, onToast, onClaimed, onMissed }: Props) {
+export function FlashDrop({ roomId, forcePhase, onToast, onClaimed, onMissed, onPhase }: Props) {
   const now = useNow(1000); // null until mounted — the card is client-only
   const mountRef = useRef<number | null>(null);
   const lastBucketRef = useRef(-1);
@@ -43,6 +45,14 @@ export function FlashDrop({ roomId, forcePhase, onToast, onClaimed, onMissed }: 
     clock = cycleStart + PHASE_OFFSET[forcePhase] + (now - anchor);
   }
   const cycle = now === null ? null : dropCycle(roomId, clock);
+
+  // Lift the phase so the stage can clear the shelf and the pin: two purchase
+  // surfaces for one product, at two different prices, is not a choice.
+  const phase = cycle?.phase ?? null;
+  useEffect(() => {
+    onPhase?.(phase);
+    return () => onPhase?.(null);
+  }, [phase, onPhase]);
 
   // Claim toasts ride the same simulation the bar reads — they always agree.
   useEffect(() => {
@@ -74,7 +84,7 @@ export function FlashDrop({ roomId, forcePhase, onToast, onClaimed, onMissed }: 
       <div className="drop-body">
         {cycle.phase === "pre" && (
           <>
-            <span className="drop-label">DROP STARTS IN</span>
+            <span className="drop-label">Drop starts in</span>
             <b className="drop-count num">{formatCountdown(countdownTo(cycle.startAt, clock))}</b>
             <span className="drop-title">{product.title}</span>
             <span className="drop-meta">
@@ -106,7 +116,7 @@ export function FlashDrop({ roomId, forcePhase, onToast, onClaimed, onMissed }: 
         )}
         {cycle.phase === "ended" && (
           <>
-            <span className="drop-label">DROP ENDED</span>
+            <span className="drop-label">Drop ended</span>
             <span className="drop-title">{product.title}</span>
             <span className="drop-meta">{cycle.claimed} claimed · back at the next show</span>
           </>
@@ -120,7 +130,7 @@ export function FlashDrop({ roomId, forcePhase, onToast, onClaimed, onMissed }: 
             if (!cycle.userClaimed) claim();
           }}
         >
-          {cycle.userClaimed ? "Yours ✓" : cycle.soldOut ? "Sold out" : "Claim"}
+          {cycle.userClaimed ? "Yours" : cycle.soldOut ? "Sold out" : "Claim"}
         </button>
       )}
     </div>

@@ -38,7 +38,7 @@ const GETS: { title: string; body: string }[] = [
   },
   {
     title: "The commerce engines",
-    body: "Flash drops with a claimed bar, soft-close auctions with proxy bids and pre-bids, one-tap giveaways — the mechanics that make live selling sell.",
+    body: "Flash drops with a claimed bar, soft-close auctions with proxy bids and pre-bids, one-tap giveaways.",
   },
   {
     title: "Checkout buyers trust",
@@ -46,11 +46,11 @@ const GETS: { title: string; body: string }[] = [
   },
   {
     title: "Your page and your clips",
-    body: "A brand page with your catalog and your content in the feed — the same surface the buyer already scrolls every day.",
+    body: "A brand page with your catalog, and your clips in the feed buyers already scroll.",
   },
   {
     title: "An audience that returns",
-    body: "SCOP points and streaks reward showing up to YOUR shows — appointment shopping, not algorithm roulette.",
+    body: "SCOP points and streaks reward buyers for turning up to your shows every week.",
   },
 ];
 
@@ -68,7 +68,7 @@ function ShowsStrip() {
             <span>
               {demoSellers[s.sellerId]?.name} · {s.host}
             </span>
-            <em className="num">{occ.state === "live" ? "Live now ›" : formatSlotTime(occ)}</em>
+            <em className="num">{occ.state === "live" ? "Live now" : formatSlotTime(occ)}</em>
           </Link>
         );
       })}
@@ -81,7 +81,7 @@ export default function BrandsPage() {
   const raya = collectionProducts(RAYA_EDIT).slice(0, 6);
 
   return (
-    <main className="lp bp">
+    <main className="lp">
       {/* nav */}
       <header className="lp-nav">
         <span className="brand">
@@ -98,7 +98,7 @@ export default function BrandsPage() {
 
       {/* hero */}
       <section className="bp-hero">
-        <p className="sec-label">FOR MALAYSIAN BRANDS</p>
+        <p className="sec-label">For Malaysian brands</p>
         <h1>
           Your brand. Your show.
           <br />
@@ -106,12 +106,12 @@ export default function BrandsPage() {
         </h1>
         <p className="lp-sub" style={{ margin: "0 auto" }}>
           Scopie gives every business its own named AI host, a weekly live show, and commerce built for how
-          Malaysia actually buys — drops, auctions, giveaways, escrow. It&rsquo;s running today. Tap anything
-          below: it&rsquo;s real.
+          Malaysia actually buys — drops, auctions, giveaways, escrow. It&rsquo;s running today: tap anything
+          below.
         </p>
         <div className="lp-cta-row" style={{ justifyContent: "center" }}>
           <Link href="/live/room_hoor" className="btn btn-primary" style={{ width: "auto" }}>
-            See hoor.ai live ›
+            See hoor.ai live
           </Link>
           <a href="mailto:sales@nexovadigital.com?subject=Put%20my%20brand%20on%20Scopie" className="lp-ghost-btn">
             Talk to the team
@@ -142,12 +142,12 @@ export default function BrandsPage() {
 
       {/* the embed — live, not a mock */}
       <section className="bp-embed">
-        <div className="bp-embed-copy">
-          <p className="sec-label" style={{ color: "var(--lilac)" }}>WHITE-LABEL</p>
-          <h2>Your host works on YOUR site too.</h2>
+        <div>
+          <p className="sec-label">White-label</p>
+          <h2>Your host works on your site too.</h2>
           <p className="lp-sub">
-            One line of HTML puts your named host on your own storefront — same catalog grounding, same
-            disclosure, same Scopie brain. The widget on the right is live: ask it something.
+            One line of HTML puts your named host on your own storefront — same catalog, same disclosure.
+            The widget on the right is live: ask it something.
           </p>
           <code className="bp-code">&lt;iframe src=&quot;https://scopie.io/embed/hoor&quot; /&gt;</code>
         </div>
@@ -164,11 +164,11 @@ export default function BrandsPage() {
 
       {/* the raya edit */}
       <section className="bp-raya">
-        <p className="sec-label" style={{ textAlign: "center" }}>SEASONAL EDITS</p>
+        <p className="sec-label" style={{ textAlign: "center" }}>Seasonal edits</p>
         <h2 style={{ textAlign: "center" }}>{RAYA_EDIT.title}</h2>
         <p className="lp-sub" style={{ margin: "0 auto", textAlign: "center" }}>
-          {RAYA_EDIT.tagline} Cross-brand merchandising puts your products inside the moment Malaysians are
-          already shopping for.
+          {RAYA_EDIT.tagline} Cross-brand edits put your products into the seasons Malaysians already shop
+          for.
         </p>
         <div className="bp-raya-rail" role="group" aria-label="The Raya Edit">
           {raya.map((p) => (
@@ -191,7 +191,7 @@ export default function BrandsPage() {
 
       {/* brand wall */}
       <section className="lp-brands">
-        <p className="sec-label" style={{ textAlign: "center" }}>IN GOOD COMPANY</p>
+        <p className="sec-label" style={{ textAlign: "center" }}>In good company</p>
         <div className="lp-brand-wall">
           {BRAND_LOGOS.map(([id, src]) => (
             <span key={id} className="lp-brand-tile" title={demoSellers[id]?.name}>
@@ -205,8 +205,7 @@ export default function BrandsPage() {
       <section className="bp-cta">
         <h2>Put your brand on Scopie.</h2>
         <p className="lp-sub" style={{ margin: "0 auto" }}>
-          Onboarding is white-glove for the first cohort: we migrate your catalog, name your host, and book
-          your first show.
+          For the first cohort we migrate your catalog, name your host, and book your first show.
         </p>
         <div className="lp-cta-row" style={{ justifyContent: "center" }}>
           <a
@@ -235,7 +234,7 @@ export default function BrandsPage() {
           <Link href="/welcome">What is Scopie</Link>
           <Link href="/?panel=shows">Droplist</Link>
         </nav>
-        <span className="lp-copy">© 2026 Scopie · Built in Malaysia 🇲🇾</span>
+        <span className="lp-copy">© 2026 Scopie · Built in Malaysia</span>
       </footer>
     </main>
   );

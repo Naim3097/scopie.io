@@ -89,6 +89,8 @@ export default function LiveRoomPage() {
   // While a lot is on the block, the list-price pin steps aside (one price
   // on screen at a time — the auction owns the product surface).
   const [auctionPhase, setAuctionPhase] = useState<AuctionPhase | null>(null);
+  const [dropPhase, setDropPhase] = useState<DropPhase | null>(null);
+  const [giveawayPhase, setGiveawayPhase] = useState<GiveawayPhase | null>(null);
   // Pitch/demo overrides: ?drop=pre|live|ended, ?auction=preview|live|sold,
   // ?giveaway=open|drawing|done — each pins that engine's phase from mount.
   const [dropOverride] = useState<DropPhase | null>(() => {
@@ -200,14 +202,25 @@ export default function LiveRoomPage() {
   // rest of THIS seller's catalog — a HOOR live shelves HOOR, nothing else.
   // While a lot is on the block its list-price card steps out of the rail.
   const auctionActive = auctionPhase !== null && auctionPhase !== "idle";
+  // Whichever engine is OFFERING a price owns the product surface — the pin
+  // steps aside so one product never shows two prices and two buy buttons.
+  // The settled phases ("ended", "done", "sold") are not offers: the pin comes
+  // straight back, or the room has nothing to buy for minutes at a time.
+  const engineActive =
+    auctionPhase === "preview" ||
+    auctionPhase === "live" ||
+    dropPhase === "pre" ||
+    dropPhase === "live" ||
+    giveawayPhase === "open" ||
+    giveawayPhase === "drawing";
   const rail: Product[] = useMemo(() => {
     const rest =
       DEMO_MODE && pinned
         ? demoProducts.filter((p) => p.sellerId === pinned.sellerId && p.id !== pinned.id && !p.enquiryOnly)
         : [];
-    const list = auctionActive ? rest : [...(pinned ? [pinned] : []), ...rest];
+    const list = engineActive ? rest : [...(pinned ? [pinned] : []), ...rest];
     return list.slice(0, 3);
-  }, [pinned, auctionActive]);
+  }, [pinned, engineActive]);
 
   // Load room + decide playback mode. Re-runs when the poll requests a
   // LiveKit retry (connectAttempt) — e.g. the seller's video arrived late.
@@ -492,7 +505,7 @@ export default function LiveRoomPage() {
             ? "That message couldn't be posted."
             : "Chat is unavailable right now — try again in a moment.";
         if (res.status !== 400) setDraft(text); // moderation rejections stay cleared
-        setMessages((m) => [...m, { from: "•", text: detail, isSystem: true }]);
+        setMessages((m) => [...m, { from: "Scopie", text: detail, isSystem: true }]);
         return;
       }
       const { message } = (await res.json()) as { message: ChatMsg };
@@ -502,7 +515,7 @@ export default function LiveRoomPage() {
       setMessages((m) => (m.some((x) => x.id === message.id) ? m : [...m, message].slice(-200)));
     } catch {
       setDraft(text); // a failed send must not eat what they typed
-      setMessages((m) => [...m, { from: "•", text: "Chat is unavailable right now — try again in a moment.", isSystem: true }]);
+      setMessages((m) => [...m, { from: "Scopie", text: "Chat is unavailable right now — try again in a moment.", isSystem: true }]);
     }
   };
 
@@ -601,7 +614,7 @@ export default function LiveRoomPage() {
           aria-pressed={following}
           onClick={() => setFollowing(toggleFollow(`live:${roomId}`))}
         >
-          {following ? "Following ✓" : "Follow"}
+          {following ? "Following" : "Follow"}
         </button>
       </div>
 
@@ -618,7 +631,7 @@ export default function LiveRoomPage() {
               }}
               aria-label={`${p.title}, ${formatRM(p.priceSen)}`}
             >
-              {p.imageUrl && <img src={p.imageUrl} alt="" />}
+              {p.imageUrl ? <img src={p.imageUrl} alt="" /> : <span className="ls-rail-name">{p.title}</span>}
               {/* whole ringgit, like the mock — the sheet shows exact prices */}
               <span className="ls-rail-price">RM {Math.round(p.priceSen / 100)}</span>
             </button>
@@ -639,7 +652,7 @@ export default function LiveRoomPage() {
                 </span>
               ) : (
                 <span className="ls-avatar" aria-hidden="true">
-                  {(m.from[0] ?? "•").toUpperCase()}
+                  {(m.from[0] ?? "S").toUpperCase()}
                 </span>
               )}
               <span className="ls-msg-body">
@@ -680,12 +693,13 @@ export default function LiveRoomPage() {
                 priceSen: claim.priceSen,
               });
               const pts = award("drop", cycle.cycleId);
-              if (pts) pushMsg("•", `+${pts} SCOP · drop claimed`, true);
+              if (pts) pushMsg("Scopie", `+${pts} SCOP · drop claimed`, true);
               setDropResult({ kind: "won", product: cycle.product, priceSen: claim.priceSen });
             }}
             onMissed={(cycle) =>
               setDropResult({ kind: "missed", product: cycle.product, priceSen: cycle.config.dealPriceSen })
             }
+            onPhase={setDropPhase}
           />
         )}
 
@@ -693,9 +707,9 @@ export default function LiveRoomPage() {
         {dropsOn && (
           <AuctionBlock roomId={roomId} forcePhase={auctionOverride} onToast={pushMsg} onPhase={setAuctionPhase} />
         )}
-        {dropsOn && <GiveawayBlock roomId={roomId} forcePhase={giveawayOverride} onToast={pushMsg} />}
+        {dropsOn && <GiveawayBlock roomId={roomId} forcePhase={giveawayOverride} onToast={pushMsg} onPhase={setGiveawayPhase} />}
 
-        {pinned && !auctionActive && (
+        {pinned && !engineActive && (
           <div className="ls-pin">
             <button
               className="ls-pin-body"
@@ -729,24 +743,20 @@ export default function LiveRoomPage() {
         <div className="ls-inputrow">
           <div className="ls-say">
             <input
+              className={draft.trim() ? "has-send" : undefined}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
                 if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                 if (e.key === "Enter") void send();
               }}
-              placeholder="Say something…"
+              placeholder={`Ask ${host}…`}
               aria-label={`Chat — ${host} answers questions`}
             />
-            {/* one affordance: the AI spark at rest, send once there's a draft */}
-            {draft.trim() ? (
-              <button className="ls-send" onClick={() => void send()} aria-label="Send">
-                <StrokeIcon kind="share" size={16} />
+            {draft.trim() && (
+              <button className="ls-send" onClick={() => void send()}>
+                Send
               </button>
-            ) : (
-              <span className="ls-say-spark" aria-hidden="true" title={`${host} answers questions here`}>
-                <StrokeIcon kind="spark" size={15} />
-              </span>
             )}
           </div>
           <CartButton />
@@ -771,7 +781,7 @@ export default function LiveRoomPage() {
       {dropResult && dropResult.kind === "won" && (
         <LiveResult
           celebrate
-          word="Dapat! 🎉"
+          word="Dapat!"
           product={dropResult.product}
           host={host}
           nameLine={dropResult.product.title}
@@ -781,7 +791,7 @@ export default function LiveRoomPage() {
             setDropResult(null);
             openCart();
           }}
-          shareText={`Dapat! 🎉 ${dropResult.product.title} on Scopie — ${formatRM(dropResult.priceSen)}. Malam Drop, every Thursday 9PM: https://scopie.io/welcome`}
+          shareText={`Dapat! ${dropResult.product.title} on Scopie — ${formatRM(dropResult.priceSen)}. Malam Drop, every Thursday 9PM: https://scopie.io/welcome`}
           onClose={() => setDropResult(null)}
         />
       )}
@@ -795,7 +805,7 @@ export default function LiveRoomPage() {
           priceLine={`Next show: ${formatSlotTime(nextShow(Date.now()))}`}
           primaryLabel="Keep watching"
           onPrimary={() => setDropResult(null)}
-          shareText={`Missed the ${dropResult.product.title} drop 😭 next one: https://scopie.io/?panel=shows`}
+          shareText={`Missed the ${dropResult.product.title} drop. Next one: https://scopie.io/?panel=shows`}
           onClose={() => setDropResult(null)}
         />
       )}

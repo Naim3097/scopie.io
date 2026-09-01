@@ -13,7 +13,7 @@ const manrope = Manrope({ subsets: ["latin"], display: "swap", variable: "--font
 export const metadata: Metadata = {
   metadataBase: new URL("https://scopie.io"),
   title: { default: "Scopie", template: "%s · Scopie" },
-  description: "Discover what's next, just for you. Social shopping with your AI personal shopper.",
+  description: "Live shopping from Malaysian brands. AI hosts, always disclosed.",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Scopie" },
   icons: {
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Scopie",
-    description: "Discover what's next, just for you. Social shopping with your AI personal shopper.",
+    description: "Live shopping from Malaysian brands. AI hosts, always disclosed.",
     url: "https://scopie.io",
     siteName: "Scopie",
     images: [{ url: "/icon-512.png", width: 512, height: 512 }],

@@ -74,7 +74,7 @@ export function WelcomeGate({ onEnter }: { onEnter: (panel: PanelKind | null) =>
             <br />
             experience Scopie.
           </h1>
-          <p className="hub-sub">One seamless marketplace.</p>
+          <p className="hub-sub">One marketplace, three ways in.</p>
 
           <nav className="hub-stage" aria-label="Choose an experience">
             <div className="hub-halo" aria-hidden="true" />

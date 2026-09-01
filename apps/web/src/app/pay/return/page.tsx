@@ -105,7 +105,7 @@ function ReturnInner() {
       icon: "bag",
       tone: "brand",
       title: "No order to show",
-      sub: "There's nothing waiting here — browse Discover to find something you'll love.",
+      sub: "Nothing waiting here. Browse Discover to start an order.",
     },
     signin: {
       icon: "lock",

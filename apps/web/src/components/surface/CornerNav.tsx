@@ -35,7 +35,7 @@ interface ArcItem {
   delay: number;
   render: React.ReactNode;
   className: string;
-  action: "search" | "create" | "ask" | "profile" | "cart" | "home";
+  action: "search" | "create" | "ask" | "profile" | "cart";
 }
 
 /* Two arcs out of the corner. Inner ring: utilities. Outer ring: the three
@@ -43,19 +43,20 @@ interface ArcItem {
 const ITEMS: ArcItem[] = [
   // inner ring
   { key: "search", label: "Discover", angle: 18, radius: 92, delay: 0, className: "corner-glyph", action: "search", render: <Glyph kind="discover" /> },
-  { key: "ask", label: "Ask Scopie", angle: 50, radius: 92, delay: 30, className: "corner-glyph corner-glyph--spark", action: "ask", render: <Glyph kind="spark" size={18} /> },
+  { key: "ask", label: "Ask Scopie", angle: 50, radius: 92, delay: 30, className: "corner-glyph", action: "ask", render: <Glyph kind="comment" size={19} /> },
   { key: "create", label: "Create", angle: 82, radius: 92, delay: 60, className: "corner-glyph", action: "create", render: (
     <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" aria-hidden="true">
       <path d="M12 5.5v13M5.5 12h13" />
     </svg>
   ) },
-  // outer ring — Scopping (cart & orders), Scopay (profile & wallet), Scopios (the feed)
-  { key: "scopping", label: "Scopping — Cart & Orders", angle: 18, radius: 158, delay: 45, className: "corner-mod hub-tile--midnight", action: "cart", render: <HelmetMark size={26} fill="#ffffff" /> },
-  { key: "scopay", label: "Scopay — Profile & Wallet", angle: 50, radius: 158, delay: 75, className: "corner-mod hub-tile--violet", action: "profile", render: <HelmetMark size={26} fill="#ffffff" /> },
-  { key: "scopios", label: "Scopios — the feed", angle: 82, radius: 158, delay: 105, className: "corner-mod hub-tile--pearl", action: "home", render: <HelmetMark size={26} fill="gradient" /> },
+  // outer ring — Scopping (cart & orders), Scopay (profile & wallet).
+  // Scopios is not here: the surface behind this fan IS the feed, so a sixth
+  // tile for it was a labelled, focusable, animated button that did nothing.
+  { key: "scopping", label: "Scopping — Cart & Orders", angle: 26, radius: 158, delay: 45, className: "corner-mod hub-tile--midnight", action: "cart", render: <HelmetMark size={26} fill="#ffffff" /> },
+  { key: "scopay", label: "Scopay — Profile & Wallet", angle: 68, radius: 158, delay: 75, className: "corner-mod hub-tile--violet", action: "profile", render: <HelmetMark size={26} fill="#ffffff" /> },
 ];
 
-const NAMES: Record<string, string> = { scopping: "Scopping", scopay: "Scopay", scopios: "Scopios" };
+const NAMES: Record<string, string> = { scopping: "Scopping", scopay: "Scopay" };
 
 /**
  * The quarter-circle: Scopie's entire navigation lives in the bottom-right
@@ -82,7 +83,6 @@ export function CornerNav({ onOpen }: { onOpen: (panel: PanelKind) => void }) {
 
   const act = (item: ArcItem) => {
     close();
-    if (item.action === "home") return; // the surface IS home
     if (item.action === "cart") return openCart();
     onOpen(item.action);
   };
@@ -105,7 +105,7 @@ export function CornerNav({ onOpen }: { onOpen: (panel: PanelKind) => void }) {
                   "--ty": `${ty.toFixed(1)}px`,
                   // MUI SpeedDial cascade: 30ms per step out, reversed on
                   // close so the arc retracts tip-to-base.
-                  transitionDelay: open ? `${item.delay}ms` : `${105 - item.delay}ms`,
+                  transitionDelay: open ? `${item.delay}ms` : `${75 - item.delay}ms`,
                 } as React.CSSProperties
               }
               tabIndex={open ? 0 : -1}

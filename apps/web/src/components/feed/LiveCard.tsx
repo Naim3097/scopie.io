@@ -39,7 +39,7 @@ export function LiveCard({ room, poster }: { room: LiveRoom; poster: string }) {
           </span>
           {dropLive && <span className="drop-tag">Drop · {drop.remaining} left</span>}
           {auction?.phase === "live" && <span className="drop-tag">Auction · {formatRM(auction.priceSen)}</span>}
-          {giveaway?.phase === "open" && <span className="drop-tag">Giveaway 🎁</span>}
+          {giveaway?.phase === "open" && <span className="drop-tag">Giveaway</span>}
           {/* Simulated commerce is labeled, always — Whatnot's own term. */}
           {DEMO_MODE && <span className="rehearsal-chip">Rehearsal</span>}
         </span>
@@ -51,7 +51,7 @@ export function LiveCard({ room, poster }: { room: LiveRoom; poster: string }) {
             </span>
           )}
           <b>{room.title}</b>
-          <span className="live-card-cta">Join live ›</span>
+          <span className="live-card-cta">Join live</span>
         </span>
       </Link>
     </section>

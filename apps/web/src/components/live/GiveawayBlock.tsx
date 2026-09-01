@@ -22,6 +22,8 @@ interface Props {
   /** Demo/pitch override (?giveaway=open|drawing|done) — pinned from mount. */
   forcePhase?: GiveawayPhase | null;
   onToast: (from: string, text: string, isSystem: boolean) => void;
+  /** Lifted so the stage can give this card the product surface. */
+  onPhase?: (phase: GiveawayPhase | null) => void;
 }
 
 const PHASE_OFFSET: Record<GiveawayPhase, number> = {
@@ -31,7 +33,7 @@ const PHASE_OFFSET: Record<GiveawayPhase, number> = {
   done: 7 * 60_000 + 32_000,
 };
 
-export function GiveawayBlock({ roomId, forcePhase, onToast }: Props) {
+export function GiveawayBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
   const now = useNow(1000);
   const mountRef = useRef<number | null>(null);
   if (now !== null && mountRef.current === null) mountRef.current = now;
@@ -61,6 +63,13 @@ export function GiveawayBlock({ roomId, forcePhase, onToast }: Props) {
 
   const state = now === null ? null : giveawayState(roomId, clock, enteredRef.current.entered);
 
+  // Lift the phase — an open giveaway owns the product surface (see FlashDrop).
+  const phase = state?.phase ?? null;
+  useEffect(() => {
+    onPhase?.(phase);
+    return () => onPhase?.(null);
+  }, [phase, onPhase]);
+
   // Announce the winner in chat, once per cycle.
   useEffect(() => {
     if (!state || state.phase !== "done" || !state.winner) return;
@@ -68,7 +77,7 @@ export function GiveawayBlock({ roomId, forcePhase, onToast }: Props) {
     announcedRef.current = state.cycleId;
     // Only announce while the moment is fresh — not when scrolling in later.
     if (clock - state.announceAt < 60_000) {
-      onToast("•", state.youWon ? "Giveaway winner: YOU 🎁" : `Giveaway winner: ${state.winner} 🎁`, true);
+      onToast("Scopie", state.youWon ? "Giveaway winner: you" : `Giveaway winner: ${state.winner}`, true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.phase, state?.cycleId]);
@@ -99,7 +108,7 @@ export function GiveawayBlock({ roomId, forcePhase, onToast }: Props) {
     enteredRef.current = { cycle: state.cycleId, entered: true };
     setVersion((v) => v + 1);
     const pts = award("giveaway_enter", `scope:${state.cycleId}`);
-    onToast("•", `You're in — winner drawn live 🎁${pts ? ` +${pts} SCOP` : ""}`, true);
+    onToast("Scopie", `You're in — winner drawn live${pts ? ` +${pts} SCOP` : ""}`, true);
   };
 
   const recent = clock - state.announceAt < 90_000;
@@ -113,7 +122,7 @@ export function GiveawayBlock({ roomId, forcePhase, onToast }: Props) {
           {state.phase === "open" && (
             <>
               <span className="drop-headline">
-                <b>GIVEAWAY 🎁</b>
+                <b>Giveaway</b>
                 <span className="drop-count num">{formatCountdown(countdownTo(state.closesAt, clock))}</span>
               </span>
               <span className="drop-title">{product.title}</span>
@@ -124,15 +133,15 @@ export function GiveawayBlock({ roomId, forcePhase, onToast }: Props) {
           )}
           {state.phase === "drawing" && (
             <>
-              <span className="drop-label">DRAWING…</span>
-              <span className="drop-title giveaway-drum">🥁 {product.title}</span>
+              <span className="drop-label">Drawing…</span>
+              <span className="drop-title giveaway-drum">{product.title}</span>
               <span className="drop-meta">{state.entries} entries · winner any second</span>
             </>
           )}
           {state.phase === "done" && (
             <>
-              <span className="drop-label">GIVEAWAY WINNER</span>
-              <span className="drop-title">{state.youWon ? "You! 🎉" : `${state.winner} 🎁`}</span>
+              <span className="drop-label">Giveaway winner</span>
+              <span className="drop-title">{state.youWon ? "You" : state.winner}</span>
               <span className="drop-meta">
                 {product.title} · {state.entries} entered
               </span>
@@ -145,7 +154,7 @@ export function GiveawayBlock({ roomId, forcePhase, onToast }: Props) {
             aria-disabled={state.userEntered}
             onClick={enter}
           >
-            {state.userEntered ? "You're in ✓" : "Enter free"}
+            {state.userEntered ? "You're in" : "Enter free"}
           </button>
         )}
       </div>
@@ -153,7 +162,7 @@ export function GiveawayBlock({ roomId, forcePhase, onToast }: Props) {
       {showWon && (
         <LiveResult
           celebrate
-          word="Rezeki! 🎁"
+          word="Rezeki!"
           product={product}
           host={roomHost(roomId)}
           nameLine={product.title}
@@ -163,7 +172,7 @@ export function GiveawayBlock({ roomId, forcePhase, onToast }: Props) {
             setDismissed(state.cycleId);
             openCart();
           }}
-          shareText={`Rezeki! 🎁 Just won the ${product.title} on Scopie Live — free. Smash Night, Fridays 9:30PM: https://scopie.io/welcome`}
+          shareText={`Rezeki! Just won the ${product.title} on Scopie Live — free. Smash Night, Fridays 9:30PM: https://scopie.io/welcome`}
           onClose={() => setDismissed(state.cycleId)}
         />
       )}

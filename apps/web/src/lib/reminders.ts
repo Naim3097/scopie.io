@@ -63,7 +63,7 @@ export function googleCalendarUrl(occ: Occurrence): string {
 export function whatsappShareUrl(occ: Occurrence): string {
   const seller = showSeller(occ.slot);
   const text =
-    `Jom tengok ${occ.slot.title} (${seller?.name ?? "Scopie"}) ${formatSlotTime(occ)} di Scopie ✨ ` +
+    `Jom tengok ${occ.slot.title} (${seller?.name ?? "Scopie"}) ${formatSlotTime(occ)} di Scopie. ` +
     `https://scopie.io/live/${occ.slot.roomId}`;
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }

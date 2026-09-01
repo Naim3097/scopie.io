@@ -108,7 +108,7 @@ export function Panel({
         <button className="panel-close" onClick={requestClose} aria-label="Close">
           <StrokeIcon kind="cross" size={17} />
         </button>
-        <span className="panel-title">{title}</span>
+        <h2 className="panel-title">{title}</h2>
         <span className="panel-right">{right}</span>
       </div>
       <div className="panel-scroll">{children}</div>

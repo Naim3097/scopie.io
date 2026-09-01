@@ -302,7 +302,7 @@ export default function StudioPage() {
     return (
       <main className="page page--pad" style={{ textAlign: "center", paddingTop: 100 }}>
         <div className="buffering" style={{ position: "static" }}>
-          <div className="ring" style={{ borderTopColor: "var(--accent)", borderColor: "var(--line-strong)" }}></div>
+          <div className="ring ring--ink"></div>
         </div>
       </main>
     );
@@ -340,12 +340,12 @@ export default function StudioPage() {
     <main className="page page--pad">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <div>
-          <div className="sec-label">LIVE STUDIO</div>
+          <div className="sec-label">Live studio</div>
           <h1 style={{ fontSize: 22 }}>{seller?.shopName}</h1>
         </div>
         {live && (
           <span className="live-badge">
-            <span aria-hidden="true">●</span> LIVE{broadcastReal ? "" : " (demo)"}
+            Live{broadcastReal ? "" : " (demo)"}
           </span>
         )}
       </div>
@@ -414,7 +414,7 @@ export default function StudioPage() {
                   {formatRM(p.priceSen)}
                 </span>
                 <span style={{ color: "var(--accent)", fontSize: 12.5 }}>
-                  {pinnedId === p.id ? "Pinned ✓" : "Pin"}
+                  {pinnedId === p.id ? "Pinned" : "Pin"}
                 </span>
               </button>
             ))}

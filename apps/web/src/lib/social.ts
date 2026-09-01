@@ -22,12 +22,12 @@ const MAX_VIDEOS = 50;
 
 /** Deterministic seeded comments so every demo video feels alive. */
 const SEEDS: [string, string][] = [
-  ["Mira", "Obsessed with this 😍"],
+  ["Mira", "Obsessed with this"],
   ["Aqil", "Where can I get one?"],
   ["Jo", "The quality looks amazing"],
   ["Nadia", "Adding to cart right now"],
   ["Ray", "Been waiting for a restock!"],
-  ["Syaz", "This is so my style ✨"],
+  ["Syaz", "This is so my style"],
 ];
 
 function hash(s: string): number {

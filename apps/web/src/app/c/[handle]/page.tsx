@@ -98,16 +98,16 @@ export default function CreatorPage() {
           aria-pressed={following}
           onClick={() => setFollowing(toggleFollow(handle))}
         >
-          {following ? "Following ✓" : "Follow"}
+          {following ? "Following" : "Follow"}
         </button>
       </div>
 
       <div className="sec-label" style={{ marginTop: 20 }}>
-        CLIPS
+        Clips
       </div>
       {loading ? (
         <div className="buffering" style={{ position: "static", padding: "30px 0" }} role="status" aria-label="Loading clips">
-          <div className="ring" style={{ borderTopColor: "var(--accent)", borderColor: "var(--line-strong)" }}></div>
+          <div className="ring ring--ink"></div>
         </div>
       ) : (
         <div className="creator-grid">
@@ -115,7 +115,7 @@ export default function CreatorPage() {
             <Link key={v.id} href={`/?v=${encodeURIComponent(v.id)}`} className="creator-tile" aria-label={`Play: ${v.caption || "video"}`}>
               {v.posterUrl && <img src={v.posterUrl} alt="" />}
               <span className="creator-tile-meta">
-                <span aria-hidden="true">♥</span> {compact.format(v.stats.likes ?? 0)}
+                {compact.format(v.stats.likes ?? 0)} likes
               </span>
             </Link>
           ))}

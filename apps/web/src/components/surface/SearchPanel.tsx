@@ -20,10 +20,10 @@ function EditRail() {
   if (items.length === 0) return null;
   return (
     <>
-      <div className="sec-label" style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        {RAYA_EDIT.title.toUpperCase()}
-        <span className="edit-rail-sub">curated across brands</span>
-      </div>
+      <h3 className="section-head">
+        {RAYA_EDIT.title}
+        <span className="section-head-sub">curated across brands</span>
+      </h3>
       <div className="edit-rail" role="group" aria-label={RAYA_EDIT.title}>
         {items.map((p) => (
           <button key={p.id} className="edit-card" onClick={() => openProduct(p, "search")}>
@@ -96,72 +96,32 @@ export function SearchPanel({ onAsk, onShows }: { onAsk: (query?: string) => voi
     return picks;
   }, [picks, sort]);
 
-  // The AI moment: surface the single best match as a personal suggestion.
-  const aiPick = useMemo(() => {
-    if (picks.length === 0) return null;
-    return [...picks].sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0))[0] ?? null;
-  }, [picks]);
-
   return (
     <div className="panel-pad">
-      <h2 className="page-title" style={{ marginTop: 6 }}>
-        Discover what&rsquo;s next, just for you.
-      </h2>
-      <p className="page-sub">Scopie AI scans trends, understands your style, and finds what you&rsquo;ll love.</p>
+      {/* The intent path leads. It used to sit behind two rails and nineteen
+          tap targets — on a screen whose whole job is "find me something". */}
+      <button className="searchbar" onClick={() => onAsk()}>
+        <StrokeIcon kind="discover" size={18} />
+        <span className="searchbar-hint">Tell me what you&rsquo;re looking for…</span>
+      </button>
 
-      <div className="sec-label">UPCOMING SHOWS</div>
+      <h3 className="section-head">Upcoming shows</h3>
       <ShowRail onShows={onShows} />
 
       <EditRail />
 
-      {/* Conversational entry — hands off to the AI personal shopper. */}
-      <button className="searchbar" style={{ width: "100%" }} onClick={() => onAsk()}>
-        <StrokeIcon kind="discover" size={18} />
-        <span className="searchbar-hint">Tell me what you&rsquo;re looking for…</span>
-        <span className="searchbar-spark">
-          <StrokeIcon kind="spark" size={17} />
-        </span>
-      </button>
-
-      <div className="chips" role="group" aria-label="Explore">
+      <h3 className="section-head">For you</h3>
+      <div className="chips" role="group" aria-label="Sort picks">
         <button className={`chip${sort === "trending" ? " chip-on" : ""}`} aria-pressed={sort === "trending"} onClick={() => setSort("trending")}>
-          <StrokeIcon kind="spark" size={13} /> Trending
+          Trending
         </button>
         <button className={`chip${sort === "foryou" ? " chip-on" : ""}`} aria-pressed={sort === "foryou"} onClick={() => setSort("foryou")}>
-          For You
-        </button>
-        <button className="chip" onClick={() => onAsk()}>
-          Ask Scopie <span aria-hidden="true">›</span>
+          Picked for you
         </button>
       </div>
-
-      {aiPick && (
-        <button className="ai-suggest" style={{ width: "100%", textAlign: "left" }} onClick={() => onAsk(aiPick.title)}>
-          <span className="ai-orb" aria-hidden="true">
-            AI
-          </span>
-          <span className="grow">
-            <b>I found something perfect for you…</b>
-            <span className="sub">
-              {aiPick.title} · {formatRM(aiPick.priceSen)}
-              {typeof aiPick.matchScore === "number" && (
-                <>
-                  {" · "}
-                  <span aria-hidden="true">✦ </span>
-                  {aiPick.matchScore}% match
-                </>
-              )}
-            </span>
-          </span>
-          {aiPick.imageUrl && <img src={aiPick.imageUrl} alt="" />}
-        </button>
-      )}
-
-      <div className="sec-label">FOR YOU</div>
-      <h3 style={{ fontSize: 18, margin: "0 0 12px" }}>AI Picks</h3>
       {loading ? (
         <div className="buffering" style={{ position: "static", padding: "30px 0" }} role="status" aria-label="Loading picks">
-          <div className="ring" style={{ borderTopColor: "var(--accent)", borderColor: "var(--line-strong)" }}></div>
+          <div className="ring ring--ink"></div>
         </div>
       ) : shown.length === 0 ? (
         <div className="section-note" style={{ marginTop: 0 }}>
@@ -174,9 +134,6 @@ export function SearchPanel({ onAsk, onShows }: { onAsk: (query?: string) => voi
           ))}
         </div>
       )}
-      <div className="section-note">
-        Match scores are curated Scopie picks for this preview — personalisation switches on with accounts.
-      </div>
     </div>
   );
 }

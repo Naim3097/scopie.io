@@ -35,7 +35,7 @@ const EMPTY_REPLY =
  */
 export function AskScopie({ initialQuery }: { initialQuery?: string | null }) {
   const [thread, setThread] = useState<Turn[]>([
-    { role: "ai", text: "Hi, I'm Scopie ✨ Your AI personal shopper. What would you like to shop today?" },
+    { role: "ai", text: "Tell me what you're after and I'll find it — by name, by occasion, or by budget." },
   ]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -88,21 +88,16 @@ export function AskScopie({ initialQuery }: { initialQuery?: string | null }) {
 
   return (
     <div className="panel-pad">
-      <div className="sec-label" style={{ marginTop: 6 }}>
-        AI PERSONAL SHOPPER
-      </div>
-      <h2 className="page-title" style={{ marginTop: 2 }}>
-        Hi, I&rsquo;m <span className="brand-name">Scopie</span>
-      </h2>
-      <p className="page-sub">Your AI Personal Shopper. I&rsquo;ll find the best for you.</p>
-
+      {/* The panel header already says "Ask Scopie" and the first message
+          introduces the host. Saying it four times before the user can type
+          was the crowding, not the content. */}
       <div className="thread" aria-live="polite">
         {thread.map((turn, i) => (
           <div key={i} style={{ display: "contents" }}>
             {turn.role === "ai" ? (
-              <div style={{ display: "flex", gap: 9, alignItems: "flex-end" }}>
+              <div className="thread-ai">
                 <span className="ai-orb ai-orb--sm" aria-hidden="true">
-                  ✦
+                  S
                 </span>
                 <div className="bubble bubble-ai">{turn.text}</div>
               </div>
@@ -141,17 +136,16 @@ export function AskScopie({ initialQuery }: { initialQuery?: string | null }) {
             if (e.nativeEvent.isComposing || e.keyCode === 229) return;
             if (e.key === "Enter") void send();
           }}
-          placeholder="Ask Scopie anything…"
+          placeholder="What are you looking for?"
           aria-label="Ask Scopie"
         />
         <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => void send()} disabled={busy}>
           {busy ? "…" : "Ask"}
         </button>
       </div>
-      <div className="section-note">
-        Scopie can search and compare picks for you — but checkout always asks you to confirm. Your money never
-        moves without your tap.
-      </div>
+      <p className="section-note">
+        Scopie is an AI assistant. Checkout always asks you to confirm — money never moves without your tap.
+      </p>
     </div>
   );
 }

@@ -15,6 +15,7 @@ import {
   type Occurrence,
 } from "@/lib/shows";
 import { formatRM } from "@/lib/demo";
+import { DEMO_MODE } from "@/lib/api";
 
 /**
  * The droplist — Scopie's published schedule. One fixed ritual (Malam Drop,
@@ -42,12 +43,12 @@ function PrebidRow({ roomId, live }: { roomId: string; live: boolean }) {
   return (
     <div className="prebid-row">
       <span className="prebid-lot">
-        🔨 Lot: <b>{lot.title}</b> · opens {formatRM(cfg.startPriceSen)}
-        <span className="rehearsal-chip">Rehearsal</span>
+        Lot: <b>{lot.title}</b> · opens {formatRM(cfg.startPriceSen)}
+        {DEMO_MODE && <span className="rehearsal-chip">Rehearsal</span>}
       </span>
       {armed !== null ? (
         <span className="prebid-armed">
-          Pre-bid {formatRM(armed)} armed ✓
+          Pre-bid armed at {formatRM(armed)}
           <button
             className="prebid-clear"
             onClick={() => {
@@ -101,11 +102,11 @@ function ShowCard({ occ, now }: { occ: Occurrence; now: number }) {
               Live now
             </span>
           ) : (
-            <span className="show-when">{formatSlotTime(occ)} MYT</span>
-          )}
-          {!live && (
-            <span className="show-count num" aria-label={`Starts in ${formatCountdown(c)}`}>
-              {formatCountdown(c)}
+            <span className="show-when">
+              {formatSlotTime(occ)} MYT
+              <span className="show-count num" aria-label={`Starts in ${formatCountdown(c)}`}>
+                {formatCountdown(c)}
+              </span>
             </span>
           )}
         </div>
@@ -127,15 +128,15 @@ function ShowCard({ occ, now }: { occ: Occurrence; now: number }) {
         <div className="show-actions">
           {live ? (
             <Link href={`/live/${occ.slot.roomId}`} className="btn btn-primary show-join">
-              Join live ›
+              Join live
             </Link>
           ) : (
             <>
-              <button className="show-act" onClick={() => downloadShowIcs(occ)}>
-                ⏰ Remind me
+              <button className="show-act show-act--primary" onClick={() => downloadShowIcs(occ)}>
+                Remind me
               </button>
               <a className="show-act" href={googleCalendarUrl(occ)} target="_blank" rel="noreferrer">
-                Google Cal
+                Google Calendar
               </a>
               <a className="show-act" href={whatsappShareUrl(occ)} target="_blank" rel="noreferrer">
                 Share
@@ -157,14 +158,8 @@ export function ShowsPanel() {
 
   return (
     <div className="panel-pad">
-      <div className="sec-label" style={{ marginTop: 6 }}>
-        THE DROPLIST
-      </div>
-      <h2 className="page-title" style={{ marginTop: 2 }}>
-        Shows you don&rsquo;t want to miss.
-      </h2>
-      <p className="page-sub">
-        Malam Drop every Thursday, 9PM. Reminders land in your own calendar — 15 minutes before showtime.
+      <p className="panel-lede">
+        Malam Drop every Thursday, 9PM. Reminders land in your own calendar, 15 minutes before showtime.
       </p>
 
       <div className="show-list">
@@ -175,9 +170,7 @@ export function ShowsPanel() {
 
       {later.length > 0 && (
         <>
-          <div className="sec-label" style={{ marginTop: 24 }}>
-            COMING WEEKS
-          </div>
+          <h3 className="section-head">Coming weeks</h3>
           <div className="show-later">
             {later.map((o) => (
               <div key={`${o.slot.id}-${o.startMs}`} className="show-later-row">
@@ -187,7 +180,7 @@ export function ShowsPanel() {
                   <span className="show-later-host"> · {showSeller(o.slot)?.name}</span>
                 </span>
                 <button className="show-act" onClick={() => downloadShowIcs(o)} aria-label={`Remind me: ${o.slot.title}`}>
-                  ⏰
+                  Remind me
                 </button>
               </div>
             ))}
@@ -195,9 +188,7 @@ export function ShowsPanel() {
         </>
       )}
 
-      <div className="section-note">
-        Times are Malaysia time (MYT). A show goes live in its room the moment the countdown ends.
-      </div>
+      <p className="section-note">Times are Malaysia time. A show goes live in its room the moment the countdown ends.</p>
     </div>
   );
 }

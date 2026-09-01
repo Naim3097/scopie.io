@@ -106,8 +106,8 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
       const fresh = state.bids.slice(emittedRef.current);
       emittedRef.current = state.bids.length;
       for (const b of fresh.slice(-3)) {
-        if (b.isYou) onToast("•", `Scopie holds your bid at ${formatRM(b.amountSen)} 🔨`, true);
-        else onToast(b.name, `bid ${formatRM(b.amountSen)} 🔨`, false);
+        if (b.isYou) onToast("Scopie", `Holding your bid at ${formatRM(b.amountSen)}`, true);
+        else onToast(b.name, `bid ${formatRM(b.amountSen)}`, false);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,7 +117,7 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
   useEffect(() => {
     if (!state || state.phase !== "live") return;
     if (prevLeaderYouRef.current && !state.leaderIsYou) {
-      onToast("•", `You've been outbid — ${formatRM(state.nextBidSen)} takes it back`, true);
+      onToast("Scopie", `You've been outbid — ${formatRM(state.nextBidSen)} takes it back`, true);
     }
     prevLeaderYouRef.current = state.leaderIsYou;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -156,7 +156,7 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
     bidsRef.current = { cycle: state.cycleId, list: [...bidsRef.current.list, bid] };
     writePrebid(roomId, null);
     setVersion((v) => v + 1);
-    onToast("•", `Your pre-bid is in — Scopie bids to ${formatRM(bid.maxSen)} for you`, true);
+    onToast("Scopie", `Your pre-bid is in — bidding up to ${formatRM(bid.maxSen)} for you`, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.cycleId, state?.phase]);
 
@@ -176,7 +176,7 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
       priceSen: state.priceSen,
     });
     const pts = award("auction", `scop:${state.cycleId}`);
-    onToast("•", `Sold to you — ${formatRM(state.priceSen)} 🔨 Added to your cart.${pts ? ` +${pts} SCOP` : ""}`, true);
+    onToast("Scopie", `Sold to you at ${formatRM(state.priceSen)} — added to your cart.${pts ? ` +${pts} SCOP` : ""}`, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.youWon, state?.cycleId]);
 
@@ -188,7 +188,7 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
     if (!bid) {
       // Raced tap: a rival bid landed in the same beat and moved the price.
       if (state.phase === "live" && !state.leaderIsYou) {
-        onToast("•", `Price moved — ${formatRM(state.nextBidSen)} takes it now`, true);
+        onToast("Scopie", `Price moved — ${formatRM(state.nextBidSen)} takes it now`, true);
       }
       return;
     }
@@ -217,14 +217,14 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
         <div className="drop-body">
           {state.phase === "preview" && (
             <>
-              <span className="drop-label">AUCTION STARTS IN</span>
+              <span className="drop-label">Auction starts in</span>
               <b className="drop-count num">{formatCountdown(countdownTo(state.startAt, clock))}</b>
               <span className="drop-title">{product.title}</span>
               <span className="drop-meta">
                 Opens at {formatRM(config.startPriceSen)} · {config.lotNote}
               </span>
               {readPrebid(roomId) !== null && bidsRef.current.list.length === 0 && (
-                <span className="auction-prebid-note">Pre-bid armed ✓</span>
+                <span className="auction-prebid-note">Pre-bid armed</span>
               )}
             </>
           )}
@@ -242,7 +242,7 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
                 {state.bidCount === 0
                   ? `Opening ask — no bids yet`
                   : state.leaderIsYou
-                    ? `You lead ✓${state.userMaxSen && state.userMaxSen > state.priceSen ? ` · max ${formatRM(state.userMaxSen)}` : ""}`
+                    ? `You lead${state.userMaxSen && state.userMaxSen > state.priceSen ? ` · max ${formatRM(state.userMaxSen)}` : ""}`
                     : `${state.leaderName} leads`}
               </span>
               <span className="drop-title">{product.title}</span>
@@ -253,11 +253,11 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
           )}
           {state.phase === "sold" && (
             <>
-              <span className="drop-label">{state.bidCount > 0 ? "SOLD" : "PASSED"}</span>
+              <span className="drop-label">{state.bidCount > 0 ? "Sold" : "Passed"}</span>
               <span className="drop-title">{product.title}</span>
               <span className="drop-meta">
                 {state.bidCount > 0
-                  ? `${formatRM(state.priceSen)} · ${state.leaderIsYou ? "to you 🎉" : `to ${state.leaderName}`} · ${state.bidCount} bids`
+                  ? `${formatRM(state.priceSen)} · ${state.leaderIsYou ? "to you" : `to ${state.leaderName}`} · ${state.bidCount} bids`
                   : "No bids this lot — back at the next show"}
               </span>
             </>
@@ -274,7 +274,7 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
                 if (!state.leaderIsYou) bidNow(state.nextBidSen);
               }}
             >
-              {state.leaderIsYou ? "Leading ✓" : `Bid ${formatRM(state.nextBidSen)}`}
+              {state.leaderIsYou ? "Leading" : `Bid ${formatRM(state.nextBidSen)}`}
             </button>
             <button
               className={`auction-maxbtn${maxOpen ? " on" : ""}`}
@@ -310,7 +310,7 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
             onArm={() => {
               bidNow(maxShown);
               setMaxOpen(false);
-              onToast("•", `Max bid armed at ${formatRM(maxShown)} — Scopie bids for you`, true);
+              onToast("Scopie", `Max bid armed at ${formatRM(maxShown)}`, true);
             }}
           />
           <span className="auction-max-note">Scopie bids the minimum needed — up to your max, never past it.</span>
@@ -320,7 +320,7 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
       {showWon && (
         <LiveResult
           celebrate
-          word="Menang! 🔨"
+          word="Menang!"
           product={product}
           host={roomHost(roomId)}
           nameLine={product.title}
@@ -330,7 +330,7 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
             setDismissed(state.cycleId);
             openCart();
           }}
-          shareText={`Menang! 🔨 Won the ${product.title} at ${formatRM(state.priceSen)} on Scopie Live: https://scopie.io/welcome`}
+          shareText={`Menang! Won the ${product.title} at ${formatRM(state.priceSen)} on Scopie Live: https://scopie.io/welcome`}
           onClose={() => setDismissed(state.cycleId)}
         />
       )}
@@ -344,7 +344,7 @@ export function AuctionBlock({ roomId, forcePhase, onToast, onPhase }: Props) {
           priceLine={`Next lot: ${formatSlotTime(nextLot)}`}
           primaryLabel="Keep watching"
           onPrimary={() => setDismissed(state.cycleId)}
-          shareText={`This ${product.title} just went for ${formatRM(state.priceSen)} on Scopie Live 🔨 The droplist: https://scopie.io/?panel=shows`}
+          shareText={`This ${product.title} just went for ${formatRM(state.priceSen)} on Scopie Live. The droplist: https://scopie.io/?panel=shows`}
           onClose={() => setDismissed(state.cycleId)}
         />
       )}
@@ -389,7 +389,7 @@ function SlideToArm({ label, onArm }: { label: string; onArm: () => void }) {
     <div className="slide-arm" ref={trackRef}>
       <span className="slide-arm-fill" style={{ width: x + KNOB / 2 }} aria-hidden="true" />
       <span className="slide-arm-label" aria-hidden="true" style={{ opacity: 1 - x / Math.max(1, span()) }}>
-        Slide to arm →
+        Slide to arm
       </span>
       <button
         className={`slide-arm-knob${dragging ? " dragging" : ""}`}
@@ -409,7 +409,7 @@ function SlideToArm({ label, onArm }: { label: string; onArm: () => void }) {
           }
         }}
       >
-        🔨
+        Arm
       </button>
     </div>
   );

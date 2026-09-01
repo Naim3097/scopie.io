@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { API_BASE, DEMO_MODE } from "@/lib/api";
 import { useCommerce } from "@/components/commerce/Commerce";
-import { Hero } from "@/components/Glyph";
 import { useCart } from "@/lib/cart";
 import { readScop, streakDays, type ScopEvent } from "@/lib/scop";
 import { getAuthHeaders } from "@/lib/supabase";
@@ -61,7 +60,7 @@ export function ProfilePanel() {
     return (
       <div className="panel-pad" style={{ textAlign: "center", paddingTop: 100 }}>
         <div className="buffering" style={{ position: "static" }}>
-          <div className="ring" style={{ borderTopColor: "var(--accent)", borderColor: "var(--line-strong)" }}></div>
+          <div className="ring ring--ink"></div>
         </div>
       </div>
     );
@@ -71,7 +70,6 @@ export function ProfilePanel() {
   if (session.authEnabled && !session.userId) {
     return (
       <div className="panel-pad" style={{ textAlign: "center", paddingTop: 60 }}>
-        <Hero kind="user" />
         <h2 className="page-title">Your Scopie identity</h2>
         <p className="page-sub">Sign in to sync your credits, orders and picks across devices.</p>
         <Link href="/auth?next=%2F%3Fpanel%3Dprofile" className="btn btn-primary" style={{ width: "auto" }}>
@@ -86,20 +84,11 @@ export function ProfilePanel() {
 
   return (
     <div className="panel-pad">
-      <div className="sec-label" style={{ marginTop: 6 }}>
-        DIGITAL IDENTITY
-      </div>
-      <h2 className="page-title" style={{ marginTop: 2 }}>
-        Hi, I&rsquo;m <span className="brand-name">{isDemoIdentity ? "Zara" : displayName}</span>
-      </h2>
-      <p className="page-sub">This is your digital identity, powered by Scopie.</p>
-
+      {/* The card is the identity. Naming it three times above the card and
+          the person twice inside it was the crowding. */}
       <div className="idcard">
         <div className="avatar-orb" aria-hidden="true">
           {(isDemoIdentity ? "Z" : displayName.charAt(0).toUpperCase()) || "S"}
-        </div>
-        <div className="verified">
-          <span aria-hidden="true">{isDemoIdentity ? "◌" : "✓"}</span> {isDemoIdentity ? "GUEST PREVIEW" : "SIGNED IN"}
         </div>
         <h2>{isDemoIdentity ? "Zara Tan" : displayName}</h2>
         <div className="scopid">
@@ -107,33 +96,25 @@ export function ProfilePanel() {
             ? "SCOP-7G8H-2X9Q"
             : `SCOP-${(session.userId ?? "").replace(/-/g, "").slice(0, 8).toUpperCase()}`}
         </div>
-        <div style={{ color: "var(--faint)", fontSize: 12.5, marginTop: 6 }}>
-          {isDemoIdentity ? "Demo identity — accounts open with the full launch" : session.email}
+        <div className="idcard-note">
+          {isDemoIdentity ? "Guest preview — accounts open with the full launch" : session.email}
         </div>
       </div>
 
       <div className="stat-row">
         <div className="stat">
-          <div className="k">Scopie Credits</div>
-          <div className="v">{scop === null ? "—" : `${scop} SCOP`}</div>
+          <div className="k">Scopie credits</div>
+          <div className="v num">{scop === null ? "—" : `${scop} SCOP`}</div>
         </div>
         <div className="stat">
           <div className="k">Streak</div>
-          <div className="v">{streak > 0 ? `🔥 ${streak} day${streak === 1 ? "" : "s"}` : "Start today"}</div>
-        </div>
-        <div className="stat">
-          <div className="k">Payments</div>
-          <div className="v" style={{ fontSize: 15, fontWeight: 600 }}>
-            FPX · DuitNow · e-wallets
-          </div>
+          <div className="v num">{streak > 0 ? `${streak} day${streak === 1 ? "" : "s"}` : "Start today"}</div>
         </div>
       </div>
 
       {ledger.length > 0 && (
         <>
-          <div className="sec-label" style={{ marginTop: 18 }}>
-            HOW YOU EARNED IT
-          </div>
+          <h3 className="section-head">How you earned it</h3>
           <div className="scop-ledger">
             {ledger.map((e) => (
               <div key={e.key} className="scop-ledger-row">
@@ -145,7 +126,7 @@ export function ProfilePanel() {
         </>
       )}
 
-      <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+      <div className="panel-actions">
         <Link href="/sell" className="btn btn-primary" style={{ width: "auto" }}>
           Seller Centre
         </Link>
@@ -158,10 +139,10 @@ export function ProfilePanel() {
         </button>
       )}
 
-      <div className="section-note">
-        SCOP credits are earned through activity and redeemed for perks inside Scopie — they are not money and
-        can&rsquo;t be cashed out. Purchases are paid directly through your bank or e-wallet at checkout.
-      </div>
+      <p className="section-note">
+        Checkout takes FPX, DuitNow and e-wallets. SCOP credits are earned inside Scopie and redeemed for perks
+        — they are not money and can&rsquo;t be cashed out.
+      </p>
     </div>
   );
 }
