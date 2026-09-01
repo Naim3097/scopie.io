@@ -158,7 +158,7 @@ export default function BrandsPage() {
             <span className="bp-dot" />
             <span className="bp-url">hoor.my — your site, your host</span>
           </div>
-          <iframe className="bp-frame" src="/embed/hoor" title="hoor.ai — live embedded host demo" />
+          <iframe className="bp-frame" src="/embed/hoor" title="hoor.ai — live embedded host demo" loading="lazy" />
         </div>
       </section>
 

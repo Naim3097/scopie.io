@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { Product } from "@scopie/core";
 import { award, mytDay } from "@/lib/scop";
 import { shareMoment } from "@/lib/sharecard";
@@ -34,6 +34,24 @@ export function LiveResult({
   shareText: string;
   onClose: () => void;
 }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // A dialog owns the keyboard: focus moves in on open, Escape dismisses,
+  // and focus returns to where the user was when it closes.
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    cardRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      prev?.focus?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!celebrate) return;
     let cancelled = false;
@@ -60,8 +78,17 @@ export function LiveResult({
   };
 
   return (
-    <div className="drop-result" role="dialog" aria-modal="true" aria-label={word}>
-      <div className={`drop-result-card${celebrate ? "" : " drop-result-card--missed"}`}>
+    <div
+      className="drop-result"
+      role="dialog"
+      aria-modal="true"
+      aria-label={word}
+      onClick={(e) => {
+        // Tapping the scrim dismisses — the card itself never does.
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div ref={cardRef} tabIndex={-1} className={`drop-result-card${celebrate ? "" : " drop-result-card--missed"}`}>
         {product.imageUrl && <img src={product.imageUrl} alt="" />}
         <b className="drop-result-word">{word}</b>
         <span className="drop-result-name">{nameLine}</span>

@@ -270,6 +270,17 @@ button { font: inherit; cursor: pointer; }
   border: 1px solid rgba(105, 90, 205, 0.22);
 }
 
+/* Keyboard focus on the week 3-5 controls: visible on both grounds. */
+.drop-claim:focus-visible, .auction-maxbtn:focus-visible, .auction-stepper button:focus-visible,
+.slide-arm-knob:focus-visible, .drop-result-share:focus-visible,
+.prebid-set > button:focus-visible, .prebid-arm:focus-visible, .prebid-clear:focus-visible,
+.hw-chip:focus-visible, .hw-send:focus-visible, .edit-card:focus-visible,
+.bp-raya-card:focus-visible, .show-act:focus-visible {
+  outline: 2.5px solid var(--accent-2);
+  outline-offset: 2px;
+}
+.drop-result-card:focus { outline: none; } /* programmatic dialog focus */
+
 /* the SCOP ledger — how you earned it */
 .scop-ledger {
   display: flex; flex-direction: column;
